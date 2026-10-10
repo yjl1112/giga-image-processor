@@ -36,6 +36,17 @@ giga-image-processor/
 
 > 运行期会在 `apps/material/data/` 下生成 `uploads/ outputs/ reports/ image_edits/` 等目录，已在 `.gitignore` 中排除。
 
+## 获取代码（同事克隆后可直接跑）
+
+```bash
+git clone https://github.com/yjl1112/giga-image-processor.git
+cd giga-image-processor
+```
+
+**推荐用 WorkBuddy 启动**：在 WorkBuddy 中打开 `giga-image-processor` 目录，对 Agent 说一句 **"按 README 启动这个项目"**，它会自动创建虚拟环境、安装依赖并拉起服务。
+
+纯命令行方式见下方「快速开始」。
+
 ## 快速开始
 
 ```bash
