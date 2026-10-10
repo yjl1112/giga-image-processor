@@ -778,8 +778,17 @@ def _save_template(run_dir, file_storage):
     return {"path": str(template_path), "filename": file_storage.filename}
 
 
+# 上一轮运行残留的字段：重新排队时必须丢弃，否则处理成功后 job JSON 里
+# 仍带着旧的 error，界面会同时显示"处理完成"和"处理失败"（2026-10-10 故障）。
+_JOB_STALE_KEYS = ("error", "result", "finished_at", "http_status",
+                   "started_at", "stdout", "stderr")
+
+
 def _set_job(run_id, **updates):
     job = PROCESS_JOBS.get(run_id) or _load_json(_job_path(run_id), {})
+    if updates.pop("reset", False):
+        for _key in _JOB_STALE_KEYS:
+            job.pop(_key, None)
     job.update(updates)
     job.setdefault("run_id", run_id)
     PROCESS_JOBS[run_id] = job
@@ -1111,7 +1120,7 @@ def _process_run_background(run_id, data):
     # delete its directories out from under the worker mid-write.
     ACTIVE_RUN_IDS.add(run_id)
     try:
-        _set_job(run_id, status="running", ok=None, started_at=datetime.now().isoformat(timespec="seconds"), message="正在处理图片")
+        _set_job(run_id, reset=True, status="running", ok=None, started_at=datetime.now().isoformat(timespec="seconds"), message="正在处理图片")
         result, status = _process_run(run_id, data)
         if result.get("ok"):
             _set_job(
@@ -1688,7 +1697,7 @@ def process_start():
     existing = _load_json(_job_path(run_id), {})
     if existing.get("status") == "running":
         return jsonify({"ok": True, "run_id": run_id, "status": "running", "message": "已有处理任务正在运行"}), 202
-    _set_job(run_id, status="queued", ok=None, created_at=datetime.now().isoformat(timespec="seconds"), message="已加入处理队列")
+    _set_job(run_id, reset=True, status="queued", ok=None, created_at=datetime.now().isoformat(timespec="seconds"), message="已加入处理队列")
     thread = threading.Thread(target=_process_run_background, args=(run_id, data), daemon=True)
     thread.start()
     return jsonify({"ok": True, "run_id": run_id, "status": "queued", "message": "后台处理已启动"}), 202
@@ -1842,8 +1851,12 @@ def trigger_retention_sweep():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("KROWORK_PORT", 5000))
-    host = os.environ.get("KROWORK_HOST", "127.0.0.1")
+    # 部署平台（WorkBuddy 发布为应用 / 容器）注入的是 PORT 且要求 0.0.0.0；
+    # 本机运行仍保持只听 127.0.0.1。KROWORK_* 显式设置时永远优先。
+    _deploy_port = os.environ.get("PORT", "").strip()
+    port = int(os.environ.get("KROWORK_PORT") or _deploy_port or 5000)
+    host = (os.environ.get("KROWORK_HOST", "").strip()
+            or ("0.0.0.0" if _deploy_port else "127.0.0.1"))
     print(APP_NAME + " running at http://" + host + ":" + str(port))
 
     # Retention sweeper: prune uploads/outputs older than RETENTION_DAYS.
