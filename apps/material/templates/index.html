@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GIGA 素材图片处理</title>
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"></script>
+  <link rel="stylesheet" href="/shared/dashboard-theme.css">
+  <script src="/shared/dashboard-layout.js?v=20260824-2"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #111827;
+      --elevated: #1f2937;
+      --border: #374151;
+      --text: #f9fafb;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --accent: #38bdf8;
+      --accent-dark: #0ea5e9;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --success: #22c55e;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-xs: 6px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.25);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 24px; }
+    .header { display: flex; justify-content: space-between; gap: 14px; align-items: center; }
+    .header h1 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .header h1 i { color: var(--accent); font-size: 22px; }
+    .header .subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
+    .stat-card .stat-value { font-size: 26px; font-weight: 700; color: var(--accent); }
+    .stat-card .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+    .stat-card.ok .stat-value { color: var(--success); }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .card h3 { color: var(--text); margin-bottom: 14px; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+    .card h3 .badge { font-size: 12px; color: var(--text-secondary); font-weight: 400; }
+
+    .upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px; text-align: center; transition: all 0.2s; cursor: pointer; background: var(--bg); }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(56,189,248,0.05); }
+    .upload-zone .icon { font-size: 44px; color: var(--accent); margin-bottom: 12px; }
+    .upload-zone .text { font-size: 14px; color: var(--text-secondary); }
+    .upload-zone .text strong { color: var(--accent); }
+    .upload-zone input[type="file"] { display: none; }
+
+    .file-list { margin-top: 14px; }
+    .file-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xs); margin-bottom: 6px; font-size: 13px; }
+    .file-item .name { color: var(--success); word-break: break-all; display: flex; align-items: center; gap: 6px; }
+    .file-item .size { color: var(--text-muted); font-size: 11px; margin-left: 8px; white-space: nowrap; }
+    .file-item .remove { color: var(--danger); cursor: pointer; margin-left: 8px; font-size: 16px; }
+
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; align-items: flex-end; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .field input[type="number"], .field input[type="text"] { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 8px 12px; color: var(--text); font-size: 14px; outline: none; min-width: 100px; }
+    .field input:focus { border-color: var(--accent); }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: var(--radius-sm); padding: 10px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: filter 0.15s, transform 0.05s; }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--accent); color: var(--bg); }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .btn-secondary { background: var(--elevated); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #253146; }
+    .btn-success { background: var(--success); color: var(--bg); }
+    .btn-success:hover { filter: brightness(1.05); }
+    .btn-small { padding: 6px 12px; font-size: 12px; }
+    .btn:disabled { background: var(--elevated); color: var(--text-muted); cursor: not-allowed; border-color: var(--border); }
+
+    .empty { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
+    .alert { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.4); color: #fecaca; padding: 12px 16px; border-radius: var(--radius-xs); margin-bottom: 12px; font-size: 13px; }
+    .alert.ok { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.4); color: #bbf7d0; }
+    .progress { display: none; text-align: center; padding: 30px; color: var(--accent); font-size: 14px; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 10px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+    .product-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xs); padding: 10px; }
+    .product-card .folder { color: var(--accent); font-size: 13px; font-weight: 600; word-break: break-all; display: flex; align-items: center; gap: 6px; }
+    .product-card .count { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+    .product-card .thumbs { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+    .product-card .thumbs img { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
+
+    .download-banner { background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.05)); border: 1px solid rgba(34,197,94,0.4); border-radius: var(--radius-sm); padding: 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .download-banner .info .title { font-size: 16px; font-weight: 600; color: var(--success); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .download-banner .info .meta { font-size: 12px; color: var(--text-secondary); }
+
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .history-item .time { color: var(--text-muted); font-size: 12px; }
+    .history-item .tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--elevated); color: var(--accent); font-weight: 500; }
+
+    .template-row { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px; }
+    .template-row .label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+    .file-name { font-size: 12px; color: var(--success); margin-top: 4px; }
+    .mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .mode-tab { padding: 9px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-secondary); font-weight: 600; cursor: pointer; }
+    .mode-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(56,189,248,0.08); }
+    .mode-panel[hidden] { display: none; }
+    .edit-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, .75fr); gap: 16px; }
+    .edit-drop { min-height: 120px; padding: 24px; cursor: pointer; }
+    .edit-drop input { display: none; }
+    .canvas-stage { position: relative; display: none; width: min(100%, 760px); margin: 14px auto 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #111; line-height: 0; }
+    .canvas-stage img, .canvas-stage canvas { display: block; width: 100%; height: auto; }
+    #edit-original-preview { user-select: none; -webkit-user-drag: none; }
+    #edit-mask-canvas { position: absolute; inset: 0; opacity: .52; cursor: crosshair; touch-action: none; }
+    #edit-selection-canvas { position: absolute; inset: 0; pointer-events: none; }
+    .brush-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .brush-row input[type="range"] { accent-color: var(--accent); }
+    .edit-tool-group { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+    .edit-tool-button.active, .edit-tool-button[aria-pressed="true"], #eraser-button.active { color: #fff; border-color: var(--accent); background: var(--accent); }
+    .edit-tool-hint { flex-basis: 100%; color: var(--text-muted); font-size: 12px; line-height: 1.5; }
+    .edit-textarea { width: 100%; min-height: 136px; padding: 10px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xs); resize: vertical; }
+    .edit-textarea:focus { outline: none; border-color: var(--accent); }
+    .edit-prompt-actions { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-top: 8px; }
+    .edit-prompt-actions .hint { color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+    .edit-template-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+    .edit-template { padding: 8px 10px; color: var(--text-secondary); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xs); text-align: left; cursor: pointer; }
+    .edit-template:hover { color: var(--accent); border-color: var(--accent); }
+    .edit-text-translation { margin-top: 12px; padding: 11px; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--bg); }
+    .edit-text-translation label { color: var(--text); font-size: 13px; font-weight: 600; }
+    .edit-text-translation input[type="checkbox"] { margin-right: 7px; accent-color: var(--accent); }
+    .edit-translation-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }
+    .edit-translation-fields .field { min-width: 0; }
+    .edit-translation-fields .field:first-child { grid-column: 1 / -1; }
+    .edit-translation-note { margin: 9px 0 0; color: var(--text-muted); font-size: 12px; line-height: 1.55; }
+    .edit-status { margin-top: 12px; color: var(--text-secondary); font-size: 13px; }
+    .compare { position: relative; max-width: 760px; margin: 14px auto; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #111; }
+    .compare img { display: block; width: 100%; height: auto; }
+    .compare-after { position: absolute; inset: 0; overflow: hidden; border-left: 2px solid var(--accent); }
+    .compare-after img { width: 100%; height: 100%; object-fit: cover; }
+    .compare-range { width: 100%; margin-top: 10px; accent-color: var(--accent); }
+    .edit-history-item { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .edit-history-item img { width: 58px; height: 58px; object-fit: cover; border-radius: var(--radius-xs); background: var(--bg); }
+    .edit-history-item .prompt { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .edit-history-item .meta { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+    .link-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .link-note { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--db-border, var(--border)); border-radius: var(--radius-xs); color: var(--db-text-2, var(--text-secondary)); background: var(--db-surface-2, var(--bg)); font-size: 12px; line-height: 1.7; }
+    .link-note strong { color: var(--db-text, var(--text)); }
+    .link-grid { display: grid; gap: 10px; }
+    .link-item { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px; border: 1px solid var(--db-border, var(--border)); border-radius: var(--radius-sm); background: var(--db-surface, var(--bg)); }
+    .link-item img { width: 72px; height: 72px; object-fit: contain; border-radius: var(--radius-xs); background: #fff; border: 1px solid var(--db-border, var(--border)); }
+    .link-item .link-name { color: var(--db-text, var(--text)); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .link-item .link-meta { color: var(--db-text-2, var(--text-muted)); font-size: 12px; margin: 3px 0; }
+    .link-item .link-url { color: var(--accent); font-size: 12px; word-break: break-all; }
+    .link-item .link-check { margin-top: 5px; font-size: 12px; line-height: 1.45; }
+    .link-item .link-check.ready { color: var(--success); }
+    .link-item .link-check.warning { color: var(--warn); }
+    .link-item .link-check.error { color: var(--danger); }
+    .link-item .link-actions-inline { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+    .giga-scope { min-height: 38px; justify-content: center; padding: 8px 11px; border: 1px solid var(--border); border-radius: var(--radius-xs); color: var(--text-secondary); background: var(--bg); font-size: 13px; }
+    .giga-status { margin-top: 14px; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+    .giga-status.is-error { color: #fecaca; }
+    .giga-status.is-warning { color: #fcd34d; }
+    .giga-status.is-success { color: var(--success); }
+    .giga-progress-wrap { display: none; margin-top: 12px; }
+    .giga-progress-track { height: 8px; overflow: hidden; background: var(--bg); border: 1px solid var(--border); border-radius: 999px; }
+    .giga-progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--accent), var(--success)); transition: width .25s ease; }
+    .giga-progress-label { margin-top: 6px; color: var(--text-muted); font-size: 12px; }
+    .giga-variant-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .giga-variant-column { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+    .giga-variant-heading { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 9px; color: var(--text); font-size: 13px; font-weight: 600; }
+    .giga-variant-heading .badge { color: var(--text-secondary); font-size: 11px; font-weight: 500; }
+    .giga-variant-list { display: grid; gap: 7px; max-height: 340px; overflow: auto; }
+    .giga-variant-item { padding: 9px; border: 1px solid var(--border); border-radius: var(--radius-xs); background: var(--surface); }
+    .giga-variant-code { color: var(--accent); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+    .giga-variant-meta { margin-top: 3px; color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
+    .giga-variant-error { margin-top: 4px; color: #fecaca; font-size: 12px; overflow-wrap: anywhere; }
+    .giga-variant-download { margin-top: 8px; }
+
+    @media (max-width: 640px) { .download-banner { flex-direction: column; align-items: flex-start; } .edit-layout, .edit-template-grid, .edit-translation-fields, .giga-variant-grid { grid-template-columns: 1fr; } .edit-tool-group { flex-basis: 100%; } .link-actions { padding-left: 48px; } .link-item { grid-template-columns: 58px minmax(0, 1fr); } .link-item img { width: 58px; height: 58px; } .link-item > .link-actions-inline { grid-column: 1 / -1; flex-direction: row; } .link-item > .link-actions-inline .btn { flex: 1; justify-content: center; } }
+  </style>
+</head>
+<body class="db-theme">
+  <div class="header">
+    <div>
+      <h1><i class="ph ph-image"></i> GIGA 素材图片处理</h1>
+      <div class="subtitle">上传 ZIP 素材包 -> 自动裁剪填满 1600x1600 + 压缩 JPG -> 下载处理好的 ZIP</div>
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-secondary btn-small" href="http://127.0.0.1:5004/"><i class="ph ph-house"></i> 返回主页</a>
+      <a class="btn btn-secondary btn-small" href="http://127.0.0.1:5001/">每日巡检</a>
+      <a class="btn btn-secondary btn-small" href="http://127.0.0.1:5002/">库存同步</a>
+      <a class="btn btn-secondary btn-small" href="http://127.0.0.1:5005/">竞品监控</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="mode-tabs" role="tablist">
+      <button class="mode-tab active" id="batch-tab" type="button" onclick="switchMaterialMode('batch')">批量素材处理</button>
+      <button class="mode-tab" id="link-tab" type="button" onclick="switchMaterialMode('link')">图片转链接</button>
+      <button class="mode-tab" id="edit-tab" type="button" onclick="switchMaterialMode('edit')">AI 局部编辑</button>
+      <button class="mode-tab" id="giga-tab" type="button" onclick="switchMaterialMode('giga')">云仓一键下载</button>
+    </div>
+    <section id="batch-panel" class="mode-panel">
+    <div class="stats-row" id="top-stats"></div>
+
+    <div class="card">
+      <h3><i class="ph ph-upload-simple"></i> 上传素材包 <span class="badge">支持多选 .zip；可选上传 Excel 模板</span></h3>
+      <div class="upload-zone" id="drop-zone" onclick="document.getElementById('zip-input').click()">
+        <div class="icon"><i class="ph ph-archive-box"></i></div>
+        <div class="text">点击或拖拽 <strong>.zip 素材包</strong> 到此处上传<br><span style="font-size:11px;color:var(--text-muted);">支持多选；文件名作为 Item Code（如 WX000123_image+file.zip -> WX000123）</span></div>
+        <input type="file" id="zip-input" multiple accept=".zip">
+      </div>
+      <div class="file-list" id="zip-list"></div>
+
+      <div class="template-row">
+        <div class="label">可选：上传 Excel 模板（按模板的 Item Code 列匹配，不传则用 zip 文件名）</div>
+        <input type="file" id="template-input" accept=".xlsx" style="color:var(--text);font-size:13px;">
+        <div class="file-name" id="template-name"></div>
+      </div>
+
+      <div class="form-row">
+        <div class="field"><label>输出尺寸</label><input type="number" id="size" value="1600" min="100"></div>
+        <div class="field"><label>JPG 质量</label><input type="number" id="quality" value="85" min="1" max="100"></div>
+        <div class="field"><label>并发数</label><input type="number" id="workers" placeholder="自动" min="1"></div>
+        <button class="btn btn-primary" onclick="startProcess()"><i class="ph ph-play"></i> 开始处理</button>
+      </div>
+    </div>
+
+    <div class="progress" id="progress"><span class="spinner"></span>正在处理图片，请稍候...</div>
+    <div id="alert"></div>
+
+    <div id="result-area" style="display:none;">
+      <div class="download-banner" id="download-banner">
+        <div class="info">
+          <div class="title"><i class="ph ph-check-circle"></i> 处理完成！点击右侧下载</div>
+          <div class="meta" id="dl-meta"></div>
+        </div>
+        <button class="btn btn-success" onclick="downloadZip()" style="font-size:16px;padding:12px 24px;"><i class="ph ph-download-simple"></i> 下载 ZIP</button>
+      </div>
+      <div class="stats-row" id="run-summary"></div>
+      <div class="card">
+        <h3><i class="ph ph-eye"></i> 处理结果预览 <span class="badge" id="result-time"></span></h3>
+        <div class="product-grid" id="product-grid"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><i class="ph ph-clock-counter-clockwise"></i> 历史记录 <span class="badge" id="hist-count">0</span></h3>
+      <div id="hist-list"><div class="empty">暂无历史记录</div></div>
+    </div>
+    </section>
+
+    <section id="link-panel" class="mode-panel" hidden>
+      <div class="card">
+        <h3><i class="ph ph-link"></i> 图片转固定 HTTPS 链接 <span class="badge">一次最多 20 张</span></h3>
+        <div class="upload-zone" id="link-drop" role="button" tabindex="0" aria-label="选择要转换为公开链接的商品图片" onclick="document.getElementById('link-input').click()">
+          <div class="icon"><i class="ph ph-cloud-arrow-up"></i></div>
+          <div class="text">点击或拖拽商品图片<br><span style="font-size:11px;color:var(--text-muted);">支持 JPG、PNG、WebP、TIFF；单张不超过 10 MB；最长边 500–10,000 px</span></div>
+          <input id="link-input" type="file" multiple accept="image/jpeg,image/png,image/webp,image/tiff,.jpg,.jpeg,.png,.webp,.tif,.tiff">
+        </div>
+        <div class="file-list" id="link-selected"></div>
+        <div class="link-actions">
+          <button class="btn btn-primary" id="link-submit" type="button"><i class="ph ph-link-simple"></i> 生成 HTTPS 链接</button>
+          <button class="btn btn-secondary" id="link-copy-all" type="button"><i class="ph ph-copy"></i> 复制全部链接</button>
+          <button class="btn btn-secondary" id="link-verify-all" type="button"><i class="ph ph-shield-check"></i> 验证公网抓取</button>
+          <button class="btn btn-secondary" id="link-csv" type="button"><i class="ph ph-file-csv"></i> 下载 Amazon URL 清单</button>
+        </div>
+        <div class="edit-status" id="link-status" role="status" aria-live="polite">选择图片后生成可直接粘贴到 Amazon 表格图片字段的公开链接。</div>
+        <div class="link-note"><strong>清晰度与跨设备保障：</strong>兼容的 JPG/PNG 会原样保留，绝不二次压缩；必须转换时优先无损 PNG，无法满足 10 MB 才使用 4:4:4 高保真 JPEG，且不会缩放像素。每条链接带固定 SHA-256/ETag 和 <code>no-transform</code> 缓存策略；“验证公网抓取”会在无登录状态下核验 GET、HEAD、Content-Type、文件大小和 SHA-256 是否一致。</div>
+        <div class="link-note"><strong>Amazon 表格使用：</strong>将已通过公网验证的 <code>amazon_image_url</code> 粘贴到当前类目模板的 <code>main_image_url</code> 或 <code>other_image_url#</code> 列。下载的是 URL 配对清单，不是可直接提交的完整类目模板。技术校验会检查 HTTPS、文件类型、500–10,000 px 与 10 MB；最长边达到 1,000 px 才标记为可缩放。主图背景、商品占比、文字/水印、类目规则和品牌权限仍需人工确认，Amazon 最终是否采用以提交结果为准。图片服务、域名和隧道在 Amazon 抓取期间必须保持在线；正式长期 Listing 建议迁移至具备 SLA 的对象存储/CDN。</div>
+      </div>
+      <div class="card">
+        <h3><i class="ph ph-images"></i> 已生成链接 <span class="badge" id="link-count">0</span></h3>
+        <div class="link-grid" id="link-results"><div class="empty">暂无图片链接</div></div>
+      </div>
+    </section>
+
+    <section id="edit-panel" class="mode-panel" hidden>
+      <div class="edit-layout">
+        <div class="card">
+          <h3><i class="ph ph-paint-brush"></i> 选择并标记修改区域 <span class="badge">遮罩外像素会保持原样</span></h3>
+          <div class="upload-zone edit-drop" id="edit-drop" onclick="document.getElementById('edit-original').click()">
+            <div class="icon"><i class="ph ph-image-square"></i></div><div class="text">点击或拖拽 <strong>单张原图</strong><br><span style="font-size:11px;color:var(--text-muted);">PNG、JPG、WebP；单张不超过 12 MB</span></div>
+            <input id="edit-original" type="file" accept="image/png,image/jpeg,image/webp">
+          </div>
+          <div class="canvas-stage" id="canvas-stage"><img id="edit-original-preview" alt="已上传的原图预览"><canvas id="edit-mask-canvas"></canvas><canvas id="edit-selection-canvas" aria-hidden="true"></canvas></div>
+          <div class="brush-row" id="brush-row" style="display:none;"><span>工具</span><div class="edit-tool-group" role="group" aria-label="遮罩标记工具"><button class="btn btn-secondary btn-small edit-tool-button active" type="button" id="brush-tool-button" aria-pressed="true">画笔（小区域）</button><button class="btn btn-secondary btn-small edit-tool-button" type="button" id="circle-tool-button" aria-pressed="false">圆形选区（大区域）</button><button class="btn btn-secondary btn-small edit-tool-button" type="button" id="square-tool-button" aria-pressed="false">方框选区（文字/条幅）</button></div><label for="brush-size">画笔大小</label><input id="brush-size" type="range" min="8" max="240" value="52"><span id="brush-size-value">52 px</span><button class="btn btn-secondary btn-small" type="button" id="eraser-button" aria-pressed="false">橡皮擦</button><button class="btn btn-secondary btn-small" type="button" id="delete-selection-button" disabled>删除当前选区</button><button class="btn btn-secondary btn-small" type="button" id="undo-button">撤销</button><button class="btn btn-secondary btn-small" type="button" id="clear-mask-button">清空</button><div class="edit-tool-hint" id="edit-tool-hint">小区域用画笔涂抹；大区域可用圆形或方框选区。切换到对应选区工具后，可直接拖动红圈或红框调整位置。</div></div>
+        </div>
+        <div class="card">
+          <h3><i class="ph ph-sparkle"></i> 修改指令</h3>
+          <textarea class="edit-textarea" id="edit-prompt" maxlength="2000" placeholder="例如：移除右侧椅子，并将露出的背景补全为自然的浅色墙面。只修改红色选区，其他部分保持不变。"></textarea>
+          <div class="edit-prompt-actions"><button class="btn btn-secondary btn-small" type="button" id="optimize-edit-prompt"><i class="ph ph-sparkle"></i> AI 优化指令</button><button class="btn btn-secondary btn-small" type="button" id="local-optimize-edit-prompt">本地优化</button><span class="hint">AI 优化会调用 Agnes 文字模型 1 次，仅发送指令和文字替换字段；本地优化不调用模型。</span></div>
+           <div class="edit-template-grid" aria-label="局部编辑快捷模板"><button class="edit-template" type="button" data-edit-template="移除红色遮罩区域内的物体或瑕疵，并根据周围环境自然补全背景。不要改变遮罩外内容。">移除物体</button><button class="edit-template" type="button" data-edit-template="将红色遮罩区域内的产品改为目标颜色（请补充具体颜色），保持原有材质、纹理、形状、尺寸和光影不变。">换色</button><button class="edit-template" type="button" data-edit-template="修复红色遮罩区域内缺失或损坏的背景，使其与周围的颜色、纹理、透视和光线自然连续。">补背景</button><button class="edit-template" type="button" data-edit-template="仅在红色遮罩区域内进行必要的轻微编辑；严格保持产品主体的外形、尺寸、比例、颜色、材质、品牌元素和遮罩外所有内容不变。">保持产品不变</button><button class="edit-template" type="button" data-edit-text-only="true" data-edit-template="将红色选区内的文字翻译为法语；若下方填写准确替换文本，则严格使用该文本。只替换字符本身，绝不改变文字下方和周围的背景、色块、渐变、纹理、边框、光影、排版或其他内容。">翻译为法语</button></div>
+           <div class="edit-text-translation"><label><input id="edit-text-translation" type="checkbox">文字翻译模式（尽量保持背景和版式）</label><div class="edit-translation-fields" id="edit-translation-fields" hidden><div class="field"><label for="edit-source-text">原文（建议填写）</label><input id="edit-source-text" type="text" maxlength="500" placeholder="例如 Geeignet für verschiedene Szenarien"></div><div class="field"><label for="edit-target-language">目标语言</label><input id="edit-target-language" type="text" maxlength="40" value="法语"></div><div class="field"><label for="edit-replacement-text">准确替换文本（可选，建议填写）</label><input id="edit-replacement-text" type="text" maxlength="500" placeholder="例如 Adapté à différents scénarios"></div></div><p class="edit-translation-note">建议用方框紧贴文字。只填目标语言也可让模型尝试翻译；填写准确的法语文本会更稳定。选区越大，模型越可能重绘底图，系统会尽量只改字形、保留背景和排版。</p></div>
+          <div class="edit-status" id="edit-status">上传原图后，小区域用画笔，大区域可用圆形选区标记修改区域。</div>
+          <button class="btn btn-primary" type="button" id="edit-submit" style="width:100%;justify-content:center;margin-top:16px;"><i class="ph ph-magic-wand"></i> 确认并开始局部编辑</button>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">提交后会调用 Agnes 图像模型。原图、遮罩、提示词和版本结果仅保存在本机素材目录。</p>
+        </div>
+      </div>
+      <div class="card" id="edit-result-card" style="display:none;"><h3><i class="ph ph-images-square"></i> 编辑结果 <span class="badge" id="edit-result-time"></span></h3><div class="compare" id="edit-compare"><img id="edit-before" alt="原图"><div class="compare-after" id="edit-after-wrap"><img id="edit-after" alt="编辑后"></div></div><input class="compare-range" id="compare-range" type="range" min="0" max="100" value="50"><div class="brush-row"><a class="btn btn-success" id="edit-download" href="#"><i class="ph ph-download-simple"></i> 下载结果</a><button class="btn btn-secondary" id="edit-continue" type="button">以此结果继续修改</button></div></div>
+      <div class="card"><h3><i class="ph ph-clock-counter-clockwise"></i> 局部编辑历史 <span class="badge" id="edit-history-count">0</span></h3><div id="edit-history"><div class="empty">暂无局部编辑记录</div></div></div>
+    </section>
+
+    <section id="giga-panel" class="mode-panel" hidden>
+      <div class="card">
+        <h3><i class="ph ph-cloud-arrow-down"></i> 云仓素材包一键下载 <span class="badge">自动下载当前商品及同链接全部变体</span></h3>
+        <div class="form-row">
+          <div class="field" style="min-width:220px;"><label for="giga-item-code">GIGA Item Code</label><input id="giga-item-code" type="text" maxlength="80" autocomplete="off" spellcheck="false" placeholder="例如 W3325S00514"></div>
+          <div class="field giga-scope"><label>下载范围</label><span>当前商品 + 同链接全部变体</span></div>
+          <button class="btn btn-primary" id="giga-start" type="button"><i class="ph ph-download-simple"></i> 下载素材包</button>
+        </div>
+        <div class="link-note"><strong>安全提示：</strong>此操作只读取并下载云仓原始素材包；不会裁剪、压缩、转换图片，也不会创建订单、修改库存或变更商品信息。请确认输入的是需要下载的云仓 Item Code。</div>
+        <div class="giga-status" id="giga-status" role="status" aria-live="polite">输入 Item Code 后，系统会识别当前商品和同一商品链接中的全部变体，并下载各自的原始素材包。</div>
+        <div class="giga-progress-wrap" id="giga-progress-wrap" aria-live="polite">
+          <div class="giga-progress-track"><div class="giga-progress-bar" id="giga-progress-bar"></div></div>
+          <div class="giga-progress-label" id="giga-progress-label">等待开始</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><i class="ph ph-list-checks"></i> 变体素材包状态 <span class="badge">状态会自动刷新</span></h3>
+        <div class="giga-variant-grid">
+          <div class="giga-variant-column"><div class="giga-variant-heading"><span>已发现变体</span><span class="badge" id="giga-discovered-count">0</span></div><div class="giga-variant-list" id="giga-discovered-list"><div class="empty">尚未发现变体</div></div></div>
+          <div class="giga-variant-column"><div class="giga-variant-heading"><span>已下载素材包</span><span class="badge" id="giga-downloaded-count">0</span></div><div class="giga-variant-list" id="giga-downloaded-list"><div class="empty">尚无已下载素材包</div></div></div>
+          <div class="giga-variant-column"><div class="giga-variant-heading"><span>下载失败</span><span class="badge" id="giga-failed-count">0</span></div><div class="giga-variant-list" id="giga-failed-list"><div class="empty">暂无失败项目</div></div></div>
+        </div>
+      </div>
+
+      <div class="card" id="giga-output-card" style="display:none;">
+        <h3><i class="ph ph-check-circle"></i> 下载完成 <span class="badge">原始素材包，未处理</span></h3>
+        <div class="download-banner">
+          <div class="info"><div class="title"><i class="ph ph-archive-box"></i> 原始素材包已下载</div><div class="meta" id="giga-output-meta"></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+function redirectLegacyPublicHost() {
+  const legacyHosts = new Set([
+    'material.huichengds.dpdns.org',
+    'patrol.huichengds.dpdns.org',
+    'sync.huichengds.dpdns.org',
+    'competitor.huichengds.dpdns.org',
+  ]);
+  if (!legacyHosts.has(window.location.hostname)) return;
+  const moduleName = window.location.hostname.split('.')[0];
+  const targetPath = moduleName === 'material' ? '/material/' : `/${moduleName}/`;
+  window.location.replace(`https://ops.huichengds.dpdns.org${targetPath}${window.location.search || ''}`);
+}
+redirectLegacyPublicHost();
+
+function rewriteLocalLinks() {
+  const publicPaths = {
+    '5004': '/',
+    '5001': '/patrol/',
+    '5002': '/sync/',
+    '5003': '/material/',
+    '5005': '/competitor/',
+  };
+  const isPublic = window.location.hostname.endsWith('huichengds.dpdns.org');
+  document.querySelectorAll('a[href^="http://127.0.0.1:"]').forEach(a => {
+    const url = new URL(a.href);
+    if (isPublic && publicPaths[url.port]) {
+      a.href = `https://ops.huichengds.dpdns.org${publicPaths[url.port]}`;
+    } else {
+      a.href = a.href.replace('127.0.0.1', window.location.hostname);
+    }
+  });
+}
+rewriteLocalLinks();
+let selectedZips = [];
+let currentRunId = null;
+let currentResult = null;
+
+document.getElementById('zip-input').addEventListener('change', (e) => { addZips(Array.from(e.target.files)); });
+document.getElementById('template-input').addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  document.getElementById('template-name').textContent = f ? f.name : '';
+});
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  addZips(Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.zip')));
+});
+
+function addZips(files) {
+  files.forEach(f => { if (!selectedZips.find(x => x.name === f.name)) selectedZips.push(f); });
+  renderZipList();
+}
+function removeZip(name) {
+  selectedZips = selectedZips.filter(f => f.name !== name);
+  renderZipList();
+}
+function renderZipList() {
+  const el = document.getElementById('zip-list');
+  if (!selectedZips.length) { el.innerHTML = ''; return; }
+  el.innerHTML = selectedZips.map(f => `
+    <div class="file-item">
+      <div class="name"><i class="ph ph-archive-box"></i> <span>${f.name}</span><span class="size">${(f.size/1024/1024).toFixed(2)} MB</span></div>
+      <span class="remove" onclick="removeZip('${f.name}')"><i class="ph ph-x"></i></span>
+    </div>
+  `).join('');
+}
+
+function showAlert(msg, ok) {
+  const b = document.getElementById('alert');
+  b.innerHTML = `<div class="alert ${ok?'ok':''}">${msg}</div>`;
+  if (ok) setTimeout(() => b.innerHTML = '', 6000);
+}
+function clearAlert() { document.getElementById('alert').innerHTML = ''; }
+function setProgressText(text) { document.getElementById('progress').innerHTML = `<span class="spinner"></span>${text}`; }
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+const isPublicUpload = window.location.hostname.endsWith('huichengds.dpdns.org');
+const CHUNK_SIZE = isPublicUpload ? 128 * 1024 : 2 * 1024 * 1024;
+const CHUNK_UPLOAD_THRESHOLD = isPublicUpload ? 2 * 1024 * 1024 : 8 * 1024 * 1024;
+const MAX_UPLOAD_RETRIES = isPublicUpload ? 60 : 6;
+
+async function parseJsonResponse(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    const preview = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+    const cloudflare = /cloudflare|tunnel|error code:?\\s*530|bad gateway|gateway timeout/i.test(text);
+    if (cloudflare) {
+      throw new Error(`公网隧道临时中断（HTTP ${res.status}）。系统会长时间自动重试，通常等健康检查恢复隧道后会继续；如果超过十几分钟仍失败，请改用本机/局域网入口上传大文件。${preview ? ' 摘要：' + preview : ''}`);
+    }
+    throw new Error(`接口返回了非 JSON 内容（HTTP ${res.status}）：${preview || e.message}`);
+  }
+}
+
+async function uploadFilePart(runId, field, file, extra={}, attempt=1) {
+  if (field === 'zip' && file.size > CHUNK_UPLOAD_THRESHOLD) {
+    return uploadFileInChunks(runId, file, extra);
+  }
+  const fd = new FormData();
+  fd.append('run_id', runId);
+  fd.append('field', field);
+  fd.append('file', file);
+  Object.entries(extra).forEach(([k, v]) => fd.append(k, v ?? ''));
+  try {
+    const res = await fetch('/api/upload/file', { method: 'POST', body: fd });
+    const data = await parseJsonResponse(res);
+    if (!res.ok || !data.ok) throw new Error(data.error || `${file.name} 上传失败`);
+    return data;
+  } catch (e) {
+    if (attempt >= MAX_UPLOAD_RETRIES) throw new Error(`${file.name} 上传失败，已重试 ${attempt} 次：${e.message}`);
+    setProgressText(`${file.name} 上传中断，${attempt + 1}/${MAX_UPLOAD_RETRIES} 次重试中...`);
+    await sleep(Math.min(15000, 3000 * attempt));
+    return uploadFilePart(runId, field, file, extra, attempt + 1);
+  }
+}
+
+async function uploadChunk(runId, uploadId, file, chunkIndex, totalChunks, blob, attempt=1) {
+  const fd = new FormData();
+  fd.append('run_id', runId);
+  fd.append('upload_id', uploadId);
+  fd.append('chunk_index', String(chunkIndex));
+  fd.append('total_chunks', String(totalChunks));
+  fd.append('chunk', blob, `${file.name}.part${chunkIndex}`);
+  try {
+    const res = await fetch('/api/upload/chunk', { method: 'POST', body: fd });
+    const data = await parseJsonResponse(res);
+    if (!res.ok || !data.ok) throw new Error(data.error || `${file.name} 第 ${chunkIndex + 1} 片上传失败`);
+    return data;
+  } catch (e) {
+    if (attempt >= MAX_UPLOAD_RETRIES) throw new Error(`${file.name} 第 ${chunkIndex + 1} 片上传失败，已重试 ${attempt} 次：${e.message}`);
+    setProgressText(`${file.name} 第 ${chunkIndex + 1} 片上传中断，${attempt + 1}/${MAX_UPLOAD_RETRIES} 次重试中。公网隧道恢复后会自动继续...`);
+    await sleep(Math.min(15000, 3000 * attempt));
+    return uploadChunk(runId, uploadId, file, chunkIndex, totalChunks, blob, attempt + 1);
+  }
+}
+
+// 并发控制：信号量限制同时进行的上传请求数
+class UploadSemaphore {
+  constructor(limit) { this.limit = limit; this.count = 0; this.queue = []; }
+  async acquire() {
+    if (this.count < this.limit) { this.count++; return; }
+    await new Promise(resolve => this.queue.push(resolve));
+    this.count++;
+  }
+  release() {
+    this.count--;
+    if (this.queue.length > 0) this.queue.shift()();
+  }
+}
+const MAX_CONCURRENT_CHUNKS = isPublicUpload ? 4 : 6;
+const chunkSemaphore = new UploadSemaphore(MAX_CONCURRENT_CHUNKS);
+let globalChunksDone = 0;
+let globalChunksTotal = 0;
+
+async function uploadChunkWithLimit(runId, uploadId, file, chunkIndex, totalChunks, blob) {
+  await chunkSemaphore.acquire();
+  try {
+    return await uploadChunk(runId, uploadId, file, chunkIndex, totalChunks, blob);
+  } finally {
+    chunkSemaphore.release();
+    globalChunksDone++;
+    if (globalChunksTotal > 0) {
+      setProgressText(`并行上传中：${globalChunksDone}/${globalChunksTotal} 片完成（${file.name}）`);
+    }
+  }
+}
+
+async function uploadFileInChunks(runId, file, extra={}) {
+  const uploadId = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  globalChunksTotal += totalChunks;
+
+  // 所有分片并行上传，由信号量控制并发数
+  const chunkPromises = [];
+  for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+    const start = chunkIndex * CHUNK_SIZE;
+    const end = Math.min(file.size, start + CHUNK_SIZE);
+    const blob = file.slice(start, end);
+    chunkPromises.push(uploadChunkWithLimit(runId, uploadId, file, chunkIndex, totalChunks, blob));
+  }
+  await Promise.all(chunkPromises);
+
+  const res = await fetch('/api/upload/complete', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      run_id: runId,
+      upload_id: uploadId,
+      filename: file.name,
+      index: extra.index,
+      total_chunks: totalChunks,
+    })
+  });
+  const data = await parseJsonResponse(res);
+  if (!res.ok || !data.ok) throw new Error(data.error || `${file.name} 合并切片失败`);
+  return data;
+}
+
+async function uploadFilesInParallel(btn) {
+  setProgressText('正在创建上传批次...');
+  const startRes = await fetch('/api/upload/start', { method: 'POST' });
+  const startData = await parseJsonResponse(startRes);
+  if (!startRes.ok || !startData.ok) throw new Error(startData.error || '创建上传批次失败');
+  const runId = startData.run_id;
+  const template = document.getElementById('template-input').files[0];
+  const total = selectedZips.length + (template ? 1 : 0);
+  globalChunksDone = 0;
+  globalChunksTotal = 0;
+
+  // 所有 ZIP 文件并行上传（分片在文件内也并行，由全局信号量统一控速）
+  let filesDone = 0;
+  const zipPromises = selectedZips.map((file, idx) =>
+    uploadFilePart(runId, 'zip', file, {index: String(idx + 1)})
+      .then(result => { filesDone++; btn.innerHTML = `<span class="spinner" style="width:14px;height:14px;margin-right:4px;"></span>已传 ${filesDone}/${total} 个文件`; return result; })
+  );
+  await Promise.all(zipPromises);
+
+  if (template) {
+    setProgressText(`正在上传 Excel 模板：${template.name}`);
+    await uploadFilePart(runId, 'template', template);
+  }
+  setProgressText('正在校验上传文件...');
+  const finishRes = await fetch('/api/upload/finish', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({run_id: runId})
+  });
+  const finishData = await parseJsonResponse(finishRes);
+  if (!finishRes.ok || !finishData.ok) throw new Error(finishData.error || '上传校验失败');
+  return finishData;
+}
+
+async function pollProcess(runId) {
+  for (;;) {
+    const res = await fetch(`/api/process/status/${runId}`);
+    const data = await parseJsonResponse(res);
+    if (!res.ok || data.error && data.status !== 'failed') throw new Error(data.error || '读取处理状态失败');
+    if (data.status === 'succeeded') return data.result;
+    if (data.status === 'failed') {
+      const result = data.result || {};
+      throw new Error((data.error || result.error || '处理失败') + (result.stderr ? `\n${result.stderr.slice(0, 400)}` : ''));
+    }
+    setProgressText(data.message || '正在后台处理图片，请保持页面打开...');
+    await sleep(3000);
+  }
+}
+
+async function startProcess() {
+  clearAlert();
+  if (!selectedZips.length) { showAlert('请至少上传一个 .zip 素材包'); return; }
+  const btn = event.target.closest('button');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  document.getElementById('progress').style.display = 'block';
+  setProgressText('正在准备上传...');
+  document.getElementById('result-area').style.display = 'none';
+  try {
+    const upData = await uploadFilesInParallel(btn);
+    currentRunId = upData.run_id;
+    btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;margin-right:4px;"></span>正在处理...';
+    setProgressText('文件已上传，正在处理图片，请稍候...');
+    const procRes = await fetch('/api/process/start', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        run_id: upData.run_id,
+        size: parseInt(document.getElementById('size').value) || 1600,
+        quality: parseInt(document.getElementById('quality').value) || 85,
+        workers: parseInt(document.getElementById('workers').value) || undefined,
+      })
+    });
+    const startData = await parseJsonResponse(procRes);
+    if ((!procRes.ok && procRes.status !== 202) || !startData.ok) {
+      showAlert('处理启动失败：' + (startData.error||''));
+      return;
+    }
+    const data = await pollProcess(upData.run_id);
+    currentResult = data;
+    renderResult(data);
+    const s = data.summary;
+    showAlert(`处理完成：${s.input_archives} 个素材包 / ${s.total_images} 张图片 / ${s.product_folders} 个产品文件夹`, true);
+    loadStats(); loadHistory();
+  } catch (e) { showAlert('请求异常：' + e.message); }
+  finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+    document.getElementById('progress').style.display = 'none';
+  }
+}
+
+function renderResult(d) {
+  document.getElementById('result-area').style.display = 'block';
+  document.getElementById('result-time').textContent = '生成于 ' + d.generated_at;
+  const s = d.summary;
+  document.getElementById('dl-meta').textContent = `${s.input_archives} 个素材包 -> ${s.total_images} 张图片 -> ${(s.export_zip_size/1024/1024).toFixed(2)} MB`;
+  document.getElementById('run-summary').innerHTML = `
+    <div class="stat-card"><div class="stat-value">${s.input_archives}</div><div class="stat-label">输入素材包</div></div>
+    <div class="stat-card ok"><div class="stat-value">${s.total_images}</div><div class="stat-label">处理图片数</div></div>
+    <div class="stat-card"><div class="stat-value">${s.product_folders}</div><div class="stat-label">产品文件夹</div></div>
+    <div class="stat-card"><div class="stat-value">${(s.export_zip_size/1024/1024).toFixed(1)}</div><div class="stat-label">输出 MB</div></div>`;
+  const grid = document.getElementById('product-grid');
+  const products = d.products || [];
+  if (!products.length) {
+    grid.innerHTML = '<div class="empty">无产品文件夹</div>';
+  } else {
+    grid.innerHTML = products.map(p => {
+      const thumbs = (p.images || []).map(img => {
+        const imgPath = `${p.folder}/${img}`;
+        const encodedPath = imgPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+        return `<img src="/api/preview/${currentRunId}/${encodedPath}" onerror="this.style.display='none'">`;
+      }).join('');
+      return `<div class="product-card">
+        <div class="folder"><i class="ph ph-folder"></i> ${p.folder}</div>
+        <div class="count">${p.image_count} 张图片</div>
+        <div class="thumbs">${thumbs}</div>
+      </div>`;
+    }).join('');
+  }
+}
+function downloadZip() {
+  if (!currentRunId) { alert('无下载文件'); return; }
+  window.location.href = `api/download/${currentRunId}`;
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats'); const d = await r.json();
+    document.getElementById('top-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-value">${d.total_runs}</div><div class="stat-label">总处理次数</div></div>
+      <div class="stat-card ok"><div class="stat-value">${d.total_images}</div><div class="stat-label">累计图片数</div></div>
+      <div class="stat-card"><div class="stat-value">${d.total_archives}</div><div class="stat-label">累计素材包</div></div>`;
+  } catch(e) {}
+}
+
+async function loadHistory() {
+  try {
+    const r = await fetch('/api/runs'); const rows = await r.json();
+    const el = document.getElementById('hist-list');
+    document.getElementById('hist-count').textContent = rows.length;
+    if (!rows.length) { el.innerHTML = '<div class="empty">暂无历史记录</div>'; return; }
+    el.innerHTML = rows.map(r => {
+      const s = r.summary || {};
+      return `<div class="history-item">
+        <div>
+          <strong>${r.run_id}</strong>
+          <span class="time"> ${r.created_at}</span>
+          <span class="tag" style="margin-left:8px;">${r.mode}</span>
+        </div>
+        <div>
+          <span style="color:var(--success);">${s.total_images||0} 图</span>
+          <span style="color:var(--text-muted);margin-left:8px;">${s.input_archives||0} 包</span>
+          ${s.export_zip ? `<a href="/api/download/${r.run_id}" style="color:var(--accent);margin-left:8px;text-decoration:none;"><i class="ph ph-download-simple"></i> 下载</a>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+let gigaMaterialRunId = null;
+let gigaMaterialPollSequence = 0;
+
+function gigaMaterialPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+function gigaMaterialText(value) {
+  if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
+  if (gigaMaterialPlainObject(value)) {
+    for (const field of ['message', 'error', 'detail', 'reason', 'code']) {
+      const candidate = value[field];
+      if (typeof candidate === 'string' || typeof candidate === 'number') return String(candidate).trim();
+    }
+  }
+  return '';
+}
+function gigaMaterialContainers(payload) {
+  const root = gigaMaterialPlainObject(payload) ? payload : {};
+  const containers = [];
+  const add = value => { if (gigaMaterialPlainObject(value) && !containers.includes(value)) containers.push(value); };
+  add(root);
+  [root.result, root.data, root.progress, root.output, root.process_result, root.processing_result].forEach(add);
+  containers.slice().forEach(container => {
+    [container.result, container.data, container.progress, container.output, container.process_result, container.processing_result].forEach(add);
+  });
+  return containers;
+}
+function gigaMaterialField(payload, names) {
+  for (const container of gigaMaterialContainers(payload)) {
+    for (const name of names) {
+      if (Object.prototype.hasOwnProperty.call(container, name) && container[name] !== undefined && container[name] !== null && container[name] !== '') return container[name];
+    }
+  }
+  return undefined;
+}
+function gigaMaterialArray(payload, names) {
+  for (const container of gigaMaterialContainers(payload)) {
+    for (const name of names) {
+      if (Array.isArray(container[name])) return container[name];
+    }
+    const variants = container.variants;
+    if (gigaMaterialPlainObject(variants)) {
+      for (const name of names) {
+        if (Array.isArray(variants[name])) return variants[name];
+      }
+      for (const name of ['all', 'items', 'rows']) {
+        if (Array.isArray(variants[name])) return variants[name];
+      }
+    }
+  }
+  return [];
+}
+function gigaMaterialItemField(item, names) {
+  if (!gigaMaterialPlainObject(item)) return undefined;
+  for (const name of names) {
+    if (Object.prototype.hasOwnProperty.call(item, name) && item[name] !== undefined && item[name] !== null && item[name] !== '') return item[name];
+  }
+  return undefined;
+}
+function gigaMaterialVariantStatus(item) {
+  return gigaMaterialText(gigaMaterialItemField(item, ['status', 'state', 'download_status', 'stage'])).toLowerCase();
+}
+function gigaMaterialVariantFailed(item) {
+  if (gigaMaterialText(gigaMaterialItemField(item, ['error', 'failure_reason', 'reason']))) return true;
+  return /(^|[_ -])(failed|failure|error|denied|missing)([_ -]|$)|not[ _-]?found/i.test(gigaMaterialVariantStatus(item));
+}
+function gigaMaterialVariantDownloaded(item) {
+  if (gigaMaterialVariantFailed(item)) return false;
+  const status = gigaMaterialVariantStatus(item);
+  if (['downloaded', 'succeeded', 'success', 'completed', 'processed', 'done', 'ready'].includes(status)) return true;
+  return Boolean(gigaMaterialItemField(item, ['file', 'source_filename', 'downloaded_file'])) && status !== 'downloading';
+}
+function gigaMaterialVariantKey(item) {
+  const value = gigaMaterialItemField(item, ['actual_item_code', 'item_code', 'code', 'sku', 'id']) || gigaMaterialItemField(item, ['source_filename', 'filename', 'file', 'label']) || gigaMaterialItemField(item, ['error']);
+  const error = gigaMaterialItemField(item, ['error', 'failure_reason', 'reason']);
+  return `${gigaMaterialText(value) || 'item'}:${gigaMaterialText(error)}`;
+}
+function gigaMaterialUnique(items) {
+  const seen = new Set();
+  return (items || []).filter(item => {
+    const normalized = gigaMaterialPlainObject(item) ? item : { actual_item_code: gigaMaterialText(item) };
+    const key = gigaMaterialVariantKey(normalized);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function gigaMaterialVariantGroups(payload) {
+  const all = gigaMaterialArray(payload, ['variants', 'variant_items', 'items', 'all_variants']);
+  const discoveredExplicit = gigaMaterialArray(payload, ['discovered_variants', 'discovered', 'found_variants']);
+  const downloadedExplicit = gigaMaterialArray(payload, ['downloaded_variants', 'downloaded', 'completed_variants']);
+  const failedExplicit = gigaMaterialArray(payload, ['failed_variants', 'failed', 'download_failures']);
+  const errorsValue = gigaMaterialField(payload, ['errors', 'download_errors']);
+  const errors = Array.isArray(errorsValue) ? errorsValue : (errorsValue ? [errorsValue] : []);
+  const normalizedErrors = errors.map(error => {
+    if (gigaMaterialPlainObject(error)) return error;
+    return { status: 'failed', error: gigaMaterialText(error) || '未知下载错误' };
+  });
+  const downloaded = downloadedExplicit.length ? downloadedExplicit : all.filter(gigaMaterialVariantDownloaded);
+  const failed = failedExplicit.length ? failedExplicit : [...all.filter(gigaMaterialVariantFailed), ...normalizedErrors];
+  const discovered = discoveredExplicit.length ? discoveredExplicit : (all.length ? all : [...downloaded, ...failed]);
+  return {
+    discovered: gigaMaterialUnique(discovered),
+    downloaded: gigaMaterialUnique(downloaded),
+    failed: gigaMaterialUnique(failed),
+  };
+}
+function gigaMaterialStatusLabel(status) {
+  const labels = {
+    queued: '排队中', pending: '等待中', discovering: '正在识别变体', discovered: '已发现',
+    downloading: '下载中', downloaded: '已下载',
+    succeeded: '已完成', success: '已完成', completed: '已完成', failed: '失败', error: '失败',
+    needs_verification: '需要人工验证', needs_login: '需要登录',
+  };
+  return labels[status] || status;
+}
+function gigaMaterialRenderVariantList(listId, countId, variants, emptyText) {
+  const list = document.getElementById(listId);
+  document.getElementById(countId).textContent = String(variants.length);
+  list.replaceChildren();
+  if (!variants.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = emptyText;
+    list.append(empty);
+    return;
+  }
+  variants.forEach(rawItem => {
+    const item = gigaMaterialPlainObject(rawItem) ? rawItem : { actual_item_code: gigaMaterialText(rawItem) || '未返回 Item Code' };
+    const row = document.createElement('div'); row.className = 'giga-variant-item';
+    const code = document.createElement('div'); code.className = 'giga-variant-code';
+    code.textContent = gigaMaterialText(gigaMaterialItemField(item, ['actual_item_code', 'item_code', 'code', 'sku', 'requested_item_code'])) || '未返回 Item Code';
+    const metaValues = [
+      gigaMaterialText(gigaMaterialItemField(item, ['label', 'variant_label', 'name', 'title'])),
+      gigaMaterialStatusLabel(gigaMaterialVariantStatus(item)),
+      gigaMaterialText(gigaMaterialItemField(item, ['source_filename', 'filename', 'file', 'downloaded_file'])),
+      gigaMaterialText(gigaMaterialItemField(item, ['note'])),
+    ].filter(Boolean);
+    row.append(code);
+    if (metaValues.length) {
+      const meta = document.createElement('div'); meta.className = 'giga-variant-meta'; meta.textContent = metaValues.join(' · '); row.append(meta);
+    }
+    const error = gigaMaterialText(gigaMaterialItemField(item, ['error', 'failure_reason', 'reason', 'message']));
+    if (error) {
+      const errorLine = document.createElement('div'); errorLine.className = 'giga-variant-error'; errorLine.textContent = error; row.append(errorLine);
+    }
+    const downloadUrl = gigaMaterialArchiveDownloadUrl(gigaMaterialItemField(item, ['download_url']));
+    if (downloadUrl && gigaMaterialVariantDownloaded(item)) {
+      const download = document.createElement('a');
+      download.className = 'btn btn-secondary btn-small giga-variant-download';
+      download.href = downloadUrl;
+      download.textContent = '下载原始素材包';
+      row.append(download);
+    }
+    list.append(row);
+  });
+}
+function gigaMaterialSetStatus(message, tone='') {
+  const status = document.getElementById('giga-status');
+  status.textContent = message;
+  status.classList.toggle('is-error', tone === 'error');
+  status.classList.toggle('is-warning', tone === 'warning');
+  status.classList.toggle('is-success', tone === 'success');
+}
+function gigaMaterialNumber(value) {
+  const number = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+function gigaMaterialSetProgress(completed, total, percent, message) {
+  const wrap = document.getElementById('giga-progress-wrap');
+  const bar = document.getElementById('giga-progress-bar');
+  const label = document.getElementById('giga-progress-label');
+  const safeCompleted = Math.max(0, gigaMaterialNumber(completed) || 0);
+  const safeTotal = Math.max(0, gigaMaterialNumber(total) || 0);
+  let safePercent = gigaMaterialNumber(percent);
+  if (safePercent === null && safeTotal > 0) safePercent = safeCompleted / safeTotal * 100;
+  if (safePercent === null) safePercent = 0;
+  safePercent = Math.max(0, Math.min(100, safePercent));
+  wrap.style.display = 'block';
+  bar.style.width = `${Math.round(safePercent)}%`;
+  const countText = safeTotal > 0 ? `进度：${Math.min(safeCompleted, safeTotal)}/${safeTotal}` : `进度：${Math.round(safePercent)}%`;
+  label.textContent = message ? `${countText} · ${message}` : countText;
+}
+function gigaMaterialTerminalSuccess(status) {
+  return ['succeeded', 'success', 'completed', 'done', 'finished'].includes(status);
+}
+function gigaMaterialNeedsVerification(status) {
+  return ['needs_verification', 'needs_login'].includes(status);
+}
+function gigaMaterialTerminalFailure(status) {
+  return ['failed', 'error', 'cancelled', 'canceled'].includes(status);
+}
+function gigaMaterialVerificationMessage(message) {
+  const prefix = message ? `${message}。` : '';
+  return `${prefix}请在服务器浏览器中完成云仓登录或验证后，再返回此页重新开始任务。`;
+}
+function gigaMaterialArchiveDownloadUrl(value) {
+  const source = gigaMaterialText(value);
+  if (!source.startsWith('/api/giga-material/download/')) return '';
+  return materialApiUrl(source.slice(1));
+}
+function gigaMaterialRenderOutput(groups, status) {
+  const card = document.getElementById('giga-output-card');
+  if (!groups.downloaded.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const parts = [`已发现 ${groups.discovered.length} 个变体`, `成功下载 ${groups.downloaded.length} 个原始素材包`, `失败 ${groups.failed.length} 个`];
+  if (gigaMaterialNeedsVerification(status)) parts.push('已下载的素材包仍可在上方逐个取回');
+  else parts.push('可在上方逐个下载；不会进行图片处理');
+  document.getElementById('giga-output-meta').textContent = parts.join(' · ');
+}
+function gigaMaterialRenderStatus(payload, runId=gigaMaterialRunId) {
+  const groups = gigaMaterialVariantGroups(payload);
+  gigaMaterialRenderVariantList('giga-discovered-list', 'giga-discovered-count', groups.discovered, '尚未发现变体');
+  gigaMaterialRenderVariantList('giga-downloaded-list', 'giga-downloaded-count', groups.downloaded, '尚无已下载素材包');
+  gigaMaterialRenderVariantList('giga-failed-list', 'giga-failed-count', groups.failed, '暂无失败项目');
+  const status = gigaMaterialText(gigaMaterialField(payload, ['status', 'state', 'phase'])).toLowerCase();
+  const error = gigaMaterialText(gigaMaterialField(payload, ['error', 'failure_reason']));
+  const message = gigaMaterialText(gigaMaterialField(payload, ['message', 'detail', 'progress_message'])) || error;
+  const total = gigaMaterialNumber(gigaMaterialField(payload, ['total', 'total_variants', 'variant_count', 'expected_variants'])) || groups.discovered.length;
+  const completed = gigaMaterialNumber(gigaMaterialField(payload, ['completed', 'completed_count', 'processed_count', 'downloaded_count'])) || groups.downloaded.length;
+  let percent = gigaMaterialNumber(gigaMaterialField(payload, ['progress_percent', 'percent', 'percentage']));
+  if (gigaMaterialTerminalSuccess(status)) percent = 100;
+  gigaMaterialSetProgress(completed, total, percent, message || gigaMaterialStatusLabel(status) || '正在下载素材包');
+  if (gigaMaterialNeedsVerification(status)) gigaMaterialSetStatus(gigaMaterialVerificationMessage(message || error), 'warning');
+  else if (gigaMaterialTerminalFailure(status)) gigaMaterialSetStatus(error || message || '云仓素材包下载失败，请查看失败列表后重试。', 'error');
+  else if (gigaMaterialTerminalSuccess(status)) gigaMaterialSetStatus(message || '云仓原始素材包已下载完成，可在上方逐个下载。', 'success');
+  else gigaMaterialSetStatus(message || gigaMaterialStatusLabel(status) || '正在连接云仓并读取素材包状态…');
+  gigaMaterialRenderOutput(groups, status);
+}
+function gigaMaterialReset() {
+  gigaMaterialRenderVariantList('giga-discovered-list', 'giga-discovered-count', [], '尚未发现变体');
+  gigaMaterialRenderVariantList('giga-downloaded-list', 'giga-downloaded-count', [], '尚无已下载素材包');
+  gigaMaterialRenderVariantList('giga-failed-list', 'giga-failed-count', [], '暂无失败项目');
+  document.getElementById('giga-output-card').style.display = 'none';
+  gigaMaterialSetProgress(0, 0, 0, '任务已创建，正在连接云仓…');
+}
+async function pollGigaMaterial(runId, sequence) {
+  for (;;) {
+    const response = await fetch(materialApiUrl(`api/giga-material/status/${encodeURIComponent(runId)}`), {cache: 'no-store'});
+    const data = await parseJsonResponse(response);
+    if (sequence !== gigaMaterialPollSequence) return null;
+    const status = gigaMaterialText(gigaMaterialField(data, ['status', 'state', 'phase'])).toLowerCase();
+    if (gigaMaterialNeedsVerification(status)) {
+      gigaMaterialRenderStatus(data, runId);
+      return data;
+    }
+    if (!response.ok || data.ok === false) {
+      gigaMaterialRenderStatus(data, runId);
+      throw new Error(gigaMaterialText(data.error) || '读取云仓素材下载状态失败');
+    }
+    gigaMaterialRenderStatus(data, runId);
+    if (gigaMaterialTerminalSuccess(status)) return data;
+    if (gigaMaterialTerminalFailure(status)) throw new Error(gigaMaterialText(gigaMaterialField(data, ['error', 'message'])) || '云仓素材包下载失败');
+    await sleep(1800);
+  }
+}
+async function startGigaMaterial() {
+  const button = document.getElementById('giga-start');
+  if (button.disabled) return;
+  const itemCode = document.getElementById('giga-item-code').value.trim();
+  if (!itemCode) { gigaMaterialSetStatus('请先输入 GIGA Item Code。', 'error'); document.getElementById('giga-item-code').focus(); return; }
+  const originalHtml = button.innerHTML;
+  const sequence = ++gigaMaterialPollSequence;
+  gigaMaterialRunId = null;
+  button.disabled = true;
+  button.innerHTML = '<span class="spinner" style="width:14px;height:14px;margin-right:4px;"></span>正在创建任务…';
+  gigaMaterialReset();
+  gigaMaterialSetStatus('正在提交云仓素材下载任务…');
+  try {
+    const response = await fetch(materialApiUrl('api/giga-material/start'), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        item_code: itemCode,
+        include_variants: true,
+      }),
+    });
+    const created = await parseJsonResponse(response);
+    const createdStatus = gigaMaterialText(gigaMaterialField(created, ['status', 'state', 'phase'])).toLowerCase();
+    if (gigaMaterialNeedsVerification(createdStatus)) {
+      gigaMaterialRenderStatus(created);
+      return;
+    }
+    if (!response.ok || created.ok === false) throw new Error(gigaMaterialText(created.error) || '创建云仓素材下载任务失败');
+    const runId = gigaMaterialText(gigaMaterialField(created, ['run_id', 'runId', 'id']));
+    if (!runId) throw new Error('接口未返回任务编号，无法继续跟踪下载状态');
+    gigaMaterialRunId = runId;
+    gigaMaterialRenderStatus(created, runId);
+    button.innerHTML = '<span class="spinner" style="width:14px;height:14px;margin-right:4px;"></span>正在下载素材包…';
+    const result = await pollGigaMaterial(runId, sequence);
+    if (result) gigaMaterialRenderStatus(result, runId);
+  } catch (error) {
+    gigaMaterialSetStatus(`云仓素材包下载失败：${error.message}`, 'error');
+  } finally {
+    if (sequence === gigaMaterialPollSequence) {
+      button.disabled = false;
+      button.innerHTML = originalHtml;
+    }
+  }
+}
+document.getElementById('giga-start').addEventListener('click', startGigaMaterial);
+document.getElementById('giga-item-code').addEventListener('keydown', event => { if (event.key === 'Enter') startGigaMaterial(); });
+
+function switchMaterialMode(mode) {
+  ['batch', 'link', 'edit', 'giga'].forEach(name => {
+    document.getElementById(`${name}-panel`).hidden = mode !== name;
+    document.getElementById(`${name}-tab`).classList.toggle('active', mode === name);
+  });
+  if (mode === 'link') loadPublicImageHistory();
+  if (mode === 'edit') loadEditHistory();
+}
+
+let selectedPublicImages = [];
+let publicImageItems = [];
+const publicImageExtensions = /\.(jpe?g|png|webp|tiff?)$/i;
+const linkInput = document.getElementById('link-input');
+const linkDrop = document.getElementById('link-drop');
+
+function setLinkStatus(message) { document.getElementById('link-status').textContent = message; }
+function addPublicImages(files) {
+  files.filter(file => publicImageExtensions.test(file.name)).forEach(file => {
+    const key = `${file.name}:${file.size}:${file.lastModified}`;
+    if (!selectedPublicImages.some(item => `${item.name}:${item.size}:${item.lastModified}` === key)) selectedPublicImages.push(file);
+  });
+  selectedPublicImages = selectedPublicImages.slice(0, 20);
+  renderSelectedPublicImages();
+}
+function renderSelectedPublicImages() {
+  const list = document.getElementById('link-selected');
+  list.replaceChildren();
+  selectedPublicImages.forEach((file, index) => {
+    const row = document.createElement('div'); row.className = 'file-item';
+    const name = document.createElement('div'); name.className = 'name';
+    const icon = document.createElement('i'); icon.className = 'ph ph-image';
+    const label = document.createElement('span'); label.textContent = file.name;
+    const size = document.createElement('span'); size.className = 'size'; size.textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+    const remove = document.createElement('button'); remove.className = 'btn btn-secondary btn-small'; remove.type = 'button'; remove.textContent = '移除';
+    remove.onclick = event => { event.stopPropagation(); selectedPublicImages.splice(index, 1); renderSelectedPublicImages(); };
+    name.append(icon, label, size); row.append(name, remove); list.append(row);
+  });
+  setLinkStatus(selectedPublicImages.length ? `已选择 ${selectedPublicImages.length} 张图片，点击生成链接。` : '选择图片后生成可直接粘贴到 Amazon 表格图片字段的公开链接。');
+}
+linkInput.addEventListener('change', event => addPublicImages(Array.from(event.target.files)));
+linkDrop.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); linkInput.click(); } });
+['dragenter', 'dragover'].forEach(type => linkDrop.addEventListener(type, event => { event.preventDefault(); linkDrop.classList.add('dragover'); }));
+['dragleave', 'drop'].forEach(type => linkDrop.addEventListener(type, event => { event.preventDefault(); linkDrop.classList.remove('dragover'); }));
+linkDrop.addEventListener('drop', event => addPublicImages(Array.from(event.dataTransfer.files)));
+
+async function copyText(value) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(value);
+  const area = document.createElement('textarea'); area.value = value; area.style.position = 'fixed'; area.style.opacity = '0'; document.body.append(area); area.select(); document.execCommand('copy'); area.remove();
+}
+function renderPublicImageItems() {
+  const list = document.getElementById('link-results');
+  document.getElementById('link-count').textContent = publicImageItems.length;
+  list.replaceChildren();
+  if (!publicImageItems.length) { const empty = document.createElement('div'); empty.className = 'empty'; empty.textContent = '暂无图片链接'; list.append(empty); return; }
+  publicImageItems.forEach(item => {
+    const row = document.createElement('div'); row.className = 'link-item';
+    const image = document.createElement('img'); image.src = item.url; image.alt = item.original_name || '商品图片'; image.loading = 'lazy'; image.decoding = 'async';
+    const info = document.createElement('div');
+    const name = document.createElement('div'); name.className = 'link-name'; name.textContent = item.original_name || `${item.asset_id}.jpg`;
+    const meta = document.createElement('div'); meta.className = 'link-meta'; meta.textContent = `${item.width} × ${item.height} · ${item.format || String(item.extension || 'jpg').toUpperCase()} · ${(Number(item.bytes || 0) / 1024 / 1024).toFixed(2)} MB · ${publicImageQualityLabel(item)}`;
+    const check = document.createElement('div'); check.className = `link-check ${publicImageCheckTone(item)}`; check.textContent = publicImageCheckText(item);
+    const url = document.createElement('a'); url.className = 'link-url'; url.href = item.url; url.target = '_blank'; url.rel = 'noopener noreferrer'; url.textContent = item.url;
+    const actions = document.createElement('div'); actions.className = 'link-actions-inline';
+    const copy = document.createElement('button'); copy.className = 'btn btn-secondary btn-small'; copy.type = 'button'; copy.textContent = '复制链接';
+    copy.onclick = async () => { try { await copyText(item.url); setLinkStatus(`已复制：${item.original_name || item.asset_id}`); } catch (_) { setLinkStatus('复制失败，请手动复制下方 HTTPS 链接。'); } };
+    const verify = document.createElement('button'); verify.className = 'btn btn-secondary btn-small'; verify.type = 'button'; verify.textContent = '验证公网';
+    verify.onclick = () => verifyPublicImage(item.asset_id, verify);
+    actions.append(copy, verify); info.append(name, meta, check, url); row.append(image, info, actions); list.append(row);
+  });
+}
+function publicImageQualityLabel(item) {
+  if (!item.conversion) return '旧版已压缩';
+  if (item.conversion === 'original') return '原始字节保留';
+  if (item.conversion === 'lossless_png') return '无损 PNG 转换';
+  return item.conversion.replaceAll('_', ' ');
+}
+function publicImageCheckTone(item) {
+  const amazon = item.amazon || {};
+  const verification = item.last_public_check || {};
+  if (!item.conversion) return 'warning';
+  if (verification.checked_at && !verification.ok) return 'error';
+  if (!amazon.technical_ready || !amazon.zoom_ready) return 'warning';
+  return verification.ok ? 'ready' : 'warning';
+}
+function publicImageCheckText(item) {
+  const amazon = item.amazon || {};
+  const verification = item.last_public_check || {};
+  if (!item.conversion) return '旧版链接已按旧 JPEG 流程压缩；如需恢复细节，请重新上传原图生成新链接。';
+  if (!amazon.technical_ready) return 'Amazon 技术预检未通过：请检查文件格式、最长边和 10 MB 限制。';
+  if (!amazon.zoom_ready) return `技术预检通过，但最长边 ${amazon.longest_side || 0}px 小于 1,000px，买家页不能保证缩放清晰。`;
+  if (verification.checked_at && verification.ok) return 'Amazon 技术预检通过；匿名 HEAD/GET 直达、类型和 SHA-256 已一致。';
+  if (verification.checked_at) return `公网验证失败：${(verification.issues || ['请稍后重试']).join('；')}`;
+  return 'Amazon 技术预检通过；请点击“验证公网”后再粘贴到表格。';
+}
+function replacePublicImageItem(item) {
+  const index = publicImageItems.findIndex(current => current.asset_id === item.asset_id);
+  if (index >= 0) publicImageItems[index] = item;
+}
+async function requestPublicImageVerification(assetId) {
+  const response = await fetch(materialApiUrl(`api/public-images/${encodeURIComponent(assetId)}/verify`), {method: 'POST'});
+  const data = await parseJsonResponse(response);
+  if (data.item) replacePublicImageItem(data.item);
+  if (!response.ok || !data.ok) throw new Error((data.verification && data.verification.issues || []).join('；') || data.error || '公网验证失败');
+  return data.item;
+}
+async function verifyPublicImage(assetId, button) {
+  const originalText = button.textContent; button.disabled = true; button.textContent = '验证中…';
+  try {
+    const item = await requestPublicImageVerification(assetId);
+    renderPublicImageItems();
+    setLinkStatus(`公网验证通过：${item.original_name || item.asset_id} 可被无登录客户端原样获取。`);
+  } catch (error) {
+    renderPublicImageItems();
+    setLinkStatus(`公网验证失败：${error.message}`);
+  } finally { if (button.isConnected) { button.disabled = false; button.textContent = originalText; } }
+}
+async function loadPublicImageHistory() {
+  try {
+    const response = await fetch(materialApiUrl('api/public-images'));
+    const data = await parseJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || '读取链接历史失败');
+    publicImageItems = data.items || [];
+    renderPublicImageItems();
+  } catch (error) { setLinkStatus(`读取历史失败：${error.message}`); }
+}
+document.getElementById('link-submit').addEventListener('click', async event => {
+  if (!selectedPublicImages.length) return setLinkStatus('请先选择至少一张图片。');
+  const button = event.currentTarget; button.disabled = true; button.innerHTML = '<span class="spinner" style="width:14px;height:14px;margin-right:4px;"></span>正在生成…';
+  try {
+    const form = new FormData(); selectedPublicImages.forEach(file => form.append('images', file));
+    const response = await fetch(materialApiUrl('api/public-images'), {method: 'POST', body: form});
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.ok) throw new Error((data.errors || []).map(item => `${item.original_name}: ${item.error}`).join('；') || data.error || '生成链接失败');
+    const created = data.items || [];
+    const existingIds = new Set(created.map(item => item.asset_id));
+    publicImageItems = [...created, ...publicImageItems.filter(item => !existingIds.has(item.asset_id))];
+    selectedPublicImages = []; linkInput.value = ''; renderSelectedPublicImages(); renderPublicImageItems();
+    const errorText = (data.errors || []).map(item => `${item.original_name}: ${item.error}`).join('；');
+    setLinkStatus(`已生成 ${created.length} 条固定 HTTPS 链接${errorText ? `；未处理：${errorText}` : ''}`);
+  } catch (error) { setLinkStatus(`生成失败：${error.message}`); }
+  finally { button.disabled = false; button.innerHTML = '<i class="ph ph-link-simple"></i> 生成 HTTPS 链接'; }
+});
+document.getElementById('link-copy-all').addEventListener('click', async () => {
+  if (!publicImageItems.length) return setLinkStatus('当前没有可复制的图片链接。');
+  try { await copyText(publicImageItems.map(item => item.url).join('\n')); setLinkStatus(`已复制 ${publicImageItems.length} 条链接，每行一条，可粘贴到 main_image_url 或 other_image_url# 列。`); }
+  catch (_) { setLinkStatus('复制失败，请使用“下载 Amazon URL 清单”或逐条复制。'); }
+});
+document.getElementById('link-verify-all').addEventListener('click', async event => {
+  if (!publicImageItems.length) return setLinkStatus('当前没有可验证的图片链接。');
+  const button = event.currentTarget; const originalText = button.textContent; button.disabled = true;
+  const targets = publicImageItems.slice(0, 20); let passed = 0; const failed = [];
+  for (let index = 0; index < targets.length; index += 1) {
+    button.textContent = `验证中 ${index + 1}/${targets.length}…`;
+    try { await requestPublicImageVerification(targets[index].asset_id); passed += 1; }
+    catch (error) { failed.push(`${targets[index].original_name || targets[index].asset_id}: ${error.message}`); }
+  }
+  renderPublicImageItems(); button.disabled = false; button.textContent = originalText;
+  setLinkStatus(`公网验证完成：通过 ${passed}/${targets.length}${failed.length ? `；失败：${failed.join('；')}` : ''}${publicImageItems.length > targets.length ? '；为避免长时间占用，本次只验证前 20 条。' : ''}`);
+});
+document.getElementById('link-csv').addEventListener('click', () => {
+  if (!publicImageItems.length) return setLinkStatus('当前没有可导出的图片链接。');
+  const quote = value => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const rows = [['original_filename', 'amazon_image_url', 'width', 'height', 'format', 'bytes', 'sha256', 'technical_ready', 'zoom_ready', 'public_fetch_verified'], ...publicImageItems.map(item => [item.original_name, item.url, item.width, item.height, item.format, item.bytes, item.sha256, Boolean(item.amazon && item.amazon.technical_ready), Boolean(item.amazon && item.amazon.zoom_ready), Boolean(item.last_public_check && item.last_public_check.ok)])];
+  const blob = new Blob(['\ufeff' + rows.map(row => row.map(quote).join(',')).join('\r\n')], {type: 'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `amazon_image_links_${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url);
+  setLinkStatus(`已导出 ${publicImageItems.length} 条 Amazon URL 配对清单；请将 amazon_image_url 列合并到当前类目模板，不能直接替代完整上传表。`);
+});
+
+const editOriginalPreview = document.getElementById('edit-original-preview');
+const editOverlayCanvas = document.getElementById('edit-mask-canvas');
+const editSelectionCanvas = document.getElementById('edit-selection-canvas');
+const editOverlayContext = editOverlayCanvas.getContext('2d');
+const editSelectionContext = editSelectionCanvas.getContext('2d');
+const editMaskCanvas = document.createElement('canvas');
+const editMaskContext = editMaskCanvas.getContext('2d');
+let editSourceFile = null;
+let editSourcePreviewUrl = '';
+let editPainting = false;
+let editErasing = false;
+let editLastPoint = null;
+let editUndoStack = [];
+let editTool = 'brush';
+let editActiveSelection = null;
+let editSelectionInteraction = null;
+let editSelectionRenderFrame = null;
+let editImageLoadSequence = 0;
+const editPreviewUrls = new Set();
+
+function setEditStatus(text) { document.getElementById('edit-status').textContent = text; }
+function setEditBrushLabel() { document.getElementById('brush-size-value').textContent = `${document.getElementById('brush-size').value} px`; }
+function cloneEditSelection(selection) { return selection ? {...selection} : null; }
+function clearEditSelectionPreview() { editSelectionContext.clearRect(0, 0, editSelectionCanvas.width, editSelectionCanvas.height); }
+function editSelectionBounds(selection) {
+  return { left: selection.cx - selection.rx, right: selection.cx + selection.rx, top: selection.cy - selection.ry, bottom: selection.cy + selection.ry };
+}
+function editSelectionFromBounds(shape, left, top, right, bottom) {
+  const normalizedLeft = Math.min(left, right);
+  const normalizedRight = Math.max(left, right);
+  const normalizedTop = Math.min(top, bottom);
+  const normalizedBottom = Math.max(top, bottom);
+  return { shape, cx: (normalizedLeft + normalizedRight) / 2, cy: (normalizedTop + normalizedBottom) / 2, rx: (normalizedRight - normalizedLeft) / 2, ry: (normalizedBottom - normalizedTop) / 2 };
+}
+function editSelectionIsMeaningful(selection) { return Boolean(selection) && selection.rx >= 3 && selection.ry >= 3; }
+function traceEditSelection(context, selection) {
+  context.beginPath();
+  if (selection.shape === 'ellipse') context.ellipse(selection.cx, selection.cy, selection.rx, selection.ry, 0, 0, Math.PI * 2);
+  else context.rect(selection.cx - selection.rx, selection.cy - selection.ry, selection.rx * 2, selection.ry * 2);
+}
+function editSelectionHandleRadius() {
+  const rect = editOverlayCanvas.getBoundingClientRect();
+  return Math.max(12, 12 * editOverlayCanvas.width / Math.max(1, rect.width));
+}
+function editSelectionHandles(selection) {
+  const bounds = editSelectionBounds(selection);
+  return [
+    {name: 'nw', x: bounds.left, y: bounds.top}, {name: 'ne', x: bounds.right, y: bounds.top},
+    {name: 'se', x: bounds.right, y: bounds.bottom}, {name: 'sw', x: bounds.left, y: bounds.bottom},
+  ];
+}
+function renderEditActiveSelection() {
+  clearEditSelectionPreview();
+  if (!editSelectionIsMeaningful(editActiveSelection)) return;
+  const context = editSelectionContext;
+  const selection = editActiveSelection;
+  const handleRadius = editSelectionHandleRadius();
+  context.save();
+  traceEditSelection(context, selection);
+  context.fillStyle = 'rgba(255,69,69,.24)';
+  context.fill();
+  context.setLineDash([]);
+  context.lineWidth = Math.max(2, handleRadius * .34);
+  context.strokeStyle = 'rgba(255,255,255,.95)';
+  context.stroke();
+  context.setLineDash([handleRadius * 1.35, handleRadius * .85]);
+  context.lineWidth = Math.max(2, handleRadius * .18);
+  context.strokeStyle = '#ff4545';
+  traceEditSelection(context, selection);
+  context.stroke();
+  context.setLineDash([]);
+  context.fillStyle = '#ff4545';
+  context.strokeStyle = '#fff';
+  context.lineWidth = Math.max(2, handleRadius * .14);
+  editSelectionHandles(selection).forEach(handle => {
+    context.beginPath();
+    context.rect(handle.x - handleRadius / 2, handle.y - handleRadius / 2, handleRadius, handleRadius);
+    context.fill();
+    context.stroke();
+  });
+  context.beginPath();
+  context.arc(selection.cx, selection.cy, handleRadius * .48, 0, Math.PI * 2);
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+function scheduleEditActiveSelectionRender() {
+  if (editSelectionRenderFrame !== null) return;
+  editSelectionRenderFrame = requestAnimationFrame(() => {
+    editSelectionRenderFrame = null;
+    renderEditActiveSelection();
+  });
+}
+function renderEditMaskOverlay() {
+  editOverlayContext.clearRect(0, 0, editOverlayCanvas.width, editOverlayCanvas.height);
+  editOverlayContext.save();
+  editOverlayContext.globalAlpha = .88;
+  editOverlayContext.drawImage(editMaskCanvas, 0, 0);
+  editOverlayContext.globalCompositeOperation = 'source-in';
+  editOverlayContext.fillStyle = '#ff4545';
+  editOverlayContext.fillRect(0, 0, editOverlayCanvas.width, editOverlayCanvas.height);
+  editOverlayContext.restore();
+}
+function refreshEditToolControls() {
+  const brushActive = editTool === 'brush';
+  const circleActive = editTool === 'circle';
+  const squareActive = editTool === 'square';
+  [['brush-tool-button', brushActive], ['circle-tool-button', circleActive], ['square-tool-button', squareActive]].forEach(([id, active]) => {
+    const button = document.getElementById(id);
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  const eraserButton = document.getElementById('eraser-button');
+  eraserButton.classList.toggle('active', editErasing);
+  eraserButton.setAttribute('aria-pressed', String(editErasing));
+  eraserButton.textContent = editErasing ? '橡皮擦：开' : '橡皮擦';
+  document.getElementById('delete-selection-button').disabled = !editActiveSelection;
+  document.getElementById('edit-tool-hint').textContent = brushActive
+    ? `画笔适合细节修补；当前笔刷大小为 ${document.getElementById('brush-size').value} px。${editErasing ? '橡皮擦已开启。' : ''}`
+    : circleActive
+      ? '圆形选区适合大区域：从中心向外拖动创建。红圈创建后可直接拖动移动，拖动四角小方块可调整大小；按住 Shift 锁定正圆。'
+      : '方框选区适合文字和横向条幅：拖动创建矩形。红框创建后可直接拖动移动，拖动四角小方块可调整大小；按住 Shift 锁定正方形。';
+}
+function setEditTool(tool) {
+  if (!['brush', 'circle', 'square'].includes(tool)) return;
+  editTool = tool;
+  if (tool !== 'brush') editErasing = false;
+  refreshEditToolControls();
+}
+function resetEditMask() {
+  if (editSelectionRenderFrame !== null) cancelAnimationFrame(editSelectionRenderFrame);
+  editSelectionRenderFrame = null;
+  editOverlayContext.clearRect(0, 0, editOverlayCanvas.width, editOverlayCanvas.height);
+  editMaskContext.clearRect(0, 0, editMaskCanvas.width, editMaskCanvas.height);
+  clearEditSelectionPreview();
+  editUndoStack = [];
+  editActiveSelection = null;
+  editSelectionInteraction = null;
+}
+function snapshotEditMask() {
+  if (!editMaskCanvas.width) return;
+  editUndoStack.push({mask: editMaskCanvas.toDataURL('image/png'), activeSelection: cloneEditSelection(editActiveSelection)});
+  if (editUndoStack.length > 20) editUndoStack.shift();
+}
+function restoreEditMask(snapshot) {
+  if (!snapshot || !snapshot.mask) return;
+  const image = new Image();
+  image.onload = () => {
+    editMaskContext.clearRect(0, 0, editMaskCanvas.width, editMaskCanvas.height);
+    editMaskContext.drawImage(image, 0, 0);
+    editActiveSelection = cloneEditSelection(snapshot.activeSelection);
+    editSelectionInteraction = null;
+    renderEditMaskOverlay();
+    renderEditActiveSelection();
+    refreshEditToolControls();
+  };
+  image.src = snapshot.mask;
+}
+function pointForEditEvent(event) {
+  const rect = editOverlayCanvas.getBoundingClientRect();
+  return { x: (event.clientX - rect.left) * editOverlayCanvas.width / rect.width, y: (event.clientY - rect.top) * editOverlayCanvas.height / rect.height };
+}
+function clampEditSelection(selection) {
+  const rx = Math.min(Math.max(0, selection.rx), editMaskCanvas.width / 2);
+  const ry = Math.min(Math.max(0, selection.ry), editMaskCanvas.height / 2);
+  return {
+    ...selection,
+    rx,
+    ry,
+    cx: Math.min(Math.max(selection.cx, rx), editMaskCanvas.width - rx),
+    cy: Math.min(Math.max(selection.cy, ry), editMaskCanvas.height - ry),
+  };
+}
+function makeEditSelection(tool, start, end, constrain=false) {
+  if (tool === 'circle') {
+    let rx = Math.abs(end.x - start.x);
+    let ry = Math.abs(end.y - start.y);
+    if (constrain) rx = ry = Math.max(rx, ry);
+    return clampEditSelection({shape: 'ellipse', cx: start.x, cy: start.y, rx, ry});
+  }
+  let adjustedEnd = end;
+  if (constrain) {
+    const side = Math.max(Math.abs(end.x - start.x), Math.abs(end.y - start.y));
+    adjustedEnd = {x: start.x + (end.x >= start.x ? side : -side), y: start.y + (end.y >= start.y ? side : -side)};
+  }
+  return clampEditSelection(editSelectionFromBounds('rect', start.x, start.y, adjustedEnd.x, adjustedEnd.y));
+}
+function selectionContainsPoint(selection, point) {
+  if (!editSelectionIsMeaningful(selection)) return false;
+  const dx = point.x - selection.cx;
+  const dy = point.y - selection.cy;
+  return selection.shape === 'ellipse'
+    ? (dx * dx) / (selection.rx * selection.rx) + (dy * dy) / (selection.ry * selection.ry) <= 1
+    : Math.abs(dx) <= selection.rx && Math.abs(dy) <= selection.ry;
+}
+function selectionHandleAtPoint(selection, point) {
+  if (!editSelectionIsMeaningful(selection)) return null;
+  const radius = editSelectionHandleRadius() * 1.25;
+  return editSelectionHandles(selection).find(handle => Math.abs(handle.x - point.x) <= radius && Math.abs(handle.y - point.y) <= radius) || null;
+}
+function moveEditSelection(selection, deltaX, deltaY) { return clampEditSelection({...selection, cx: selection.cx + deltaX, cy: selection.cy + deltaY}); }
+function resizeEditSelection(selection, handleName, point, constrain=false) {
+  const bounds = editSelectionBounds(selection);
+  if (handleName.includes('n')) bounds.top = point.y;
+  if (handleName.includes('s')) bounds.bottom = point.y;
+  if (handleName.includes('w')) bounds.left = point.x;
+  if (handleName.includes('e')) bounds.right = point.x;
+  let resized = editSelectionFromBounds(selection.shape, bounds.left, bounds.top, bounds.right, bounds.bottom);
+  if (constrain) {
+    const size = Math.max(resized.rx, resized.ry);
+    resized = {...resized, rx: size, ry: size};
+  }
+  return clampEditSelection(resized);
+}
+function bakeEditActiveSelection() {
+  if (!editSelectionIsMeaningful(editActiveSelection)) return;
+  [editMaskContext, editOverlayContext].forEach((context, index) => {
+    context.save();
+    context.globalCompositeOperation = 'source-over';
+    context.fillStyle = index ? 'rgba(255,69,69,.88)' : '#fff';
+    traceEditSelection(context, editActiveSelection);
+    context.fill();
+    context.restore();
+  });
+  editActiveSelection = null;
+  clearEditSelectionPreview();
+}
+function rasterizeEditActiveSelection() {
+  if (!editSelectionIsMeaningful(editActiveSelection)) return;
+  bakeEditActiveSelection();
+  refreshEditToolControls();
+}
+function paintEditLine(from, to) {
+  const size = Number(document.getElementById('brush-size').value);
+  [editMaskContext, editOverlayContext].forEach((context, index) => {
+    context.save();
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.lineWidth = size;
+    context.globalCompositeOperation = editErasing ? 'destination-out' : 'source-over';
+    context.strokeStyle = index ? 'rgba(255,69,69,.88)' : '#fff';
+    context.beginPath();
+    context.moveTo(from.x, from.y);
+    context.lineTo(to.x, to.y);
+    context.stroke();
+    context.restore();
+  });
+}
+function editMaskHasSelection() {
+  if (editSelectionIsMeaningful(editActiveSelection)) return true;
+  const pixels = editMaskContext.getImageData(0, 0, editMaskCanvas.width, editMaskCanvas.height).data;
+  for (let i = 3; i < pixels.length; i += 4) if (pixels[i]) return true;
+  return false;
+}
+function loadEditImage(file) {
+  if (!file || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 12 * 1024 * 1024) {
+    setEditStatus('请选择不超过 12 MB 的 PNG、JPG 或 WebP 图片。');
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  const loadSequence = ++editImageLoadSequence;
+  const image = new Image();
+  image.onload = () => {
+    if (loadSequence !== editImageLoadSequence) { URL.revokeObjectURL(url); return; }
+    if (image.naturalWidth > 4096 || image.naturalHeight > 4096) {
+      URL.revokeObjectURL(url);
+      setEditStatus('图片边长不能超过 4096 像素。');
+      return;
+    }
+    editSourceFile = file;
+    editSourcePreviewUrl = url;
+    editPreviewUrls.add(url);
+    editOriginalPreview.src = url;
+    [editOverlayCanvas, editSelectionCanvas, editMaskCanvas].forEach(canvas => {
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+    });
+    resetEditMask();
+    document.getElementById('canvas-stage').style.display = 'block';
+    document.getElementById('brush-row').style.display = 'flex';
+    document.getElementById('edit-result-card').style.display = 'none';
+    setEditTool('brush');
+    setEditStatus(`已加载 ${image.naturalWidth} × ${image.naturalHeight} 原图。小区域用画笔；文字和条幅可用方框选区。`);
+  };
+  image.onerror = () => {
+    if (loadSequence === editImageLoadSequence) setEditStatus('原图读取失败，请重新选择图片。');
+    URL.revokeObjectURL(url);
+  };
+  image.src = url;
+}
+document.getElementById('edit-original').addEventListener('change', event => loadEditImage(event.target.files[0]));
+const editDrop = document.getElementById('edit-drop');
+['dragenter', 'dragover'].forEach(type => editDrop.addEventListener(type, event => { event.preventDefault(); editDrop.classList.add('dragover'); }));
+['dragleave', 'drop'].forEach(type => editDrop.addEventListener(type, event => { event.preventDefault(); editDrop.classList.remove('dragover'); }));
+editDrop.addEventListener('drop', event => loadEditImage(event.dataTransfer.files[0]));
+editOverlayCanvas.addEventListener('pointerdown', event => {
+  if (!editSourceFile || event.button !== 0) return;
+  const point = pointForEditEvent(event);
+  snapshotEditMask();
+  editOverlayCanvas.setPointerCapture(event.pointerId);
+  if (editTool === 'brush') {
+    bakeEditActiveSelection();
+    refreshEditToolControls();
+    editPainting = true;
+    editLastPoint = point;
+    paintEditLine(point, point);
+  } else {
+    const handle = selectionHandleAtPoint(editActiveSelection, point);
+    if (handle) {
+      editSelectionInteraction = {pointerId: event.pointerId, action: 'resize', handle: handle.name, start: point, initial: cloneEditSelection(editActiveSelection)};
+    } else if (selectionContainsPoint(editActiveSelection, point)) {
+      editSelectionInteraction = {pointerId: event.pointerId, action: 'move', start: point, initial: cloneEditSelection(editActiveSelection)};
+    } else {
+      bakeEditActiveSelection();
+      editSelectionInteraction = {pointerId: event.pointerId, action: 'create', start: point};
+      editActiveSelection = makeEditSelection(editTool, point, point, event.shiftKey);
+      renderEditActiveSelection();
+      refreshEditToolControls();
+    }
+  }
+  event.preventDefault();
+});
+editOverlayCanvas.addEventListener('pointermove', event => {
+  const point = pointForEditEvent(event);
+  if (editPainting) {
+    paintEditLine(editLastPoint, point);
+    editLastPoint = point;
+  }
+  if (editSelectionInteraction && editSelectionInteraction.pointerId === event.pointerId) {
+    const interaction = editSelectionInteraction;
+    if (interaction.action === 'create') editActiveSelection = makeEditSelection(editTool, interaction.start, point, event.shiftKey);
+    if (interaction.action === 'move') editActiveSelection = moveEditSelection(interaction.initial, point.x - interaction.start.x, point.y - interaction.start.y);
+    if (interaction.action === 'resize') editActiveSelection = resizeEditSelection(interaction.initial, interaction.handle, point, event.shiftKey);
+    scheduleEditActiveSelectionRender();
+  } else if (editTool !== 'brush') {
+    const handle = selectionHandleAtPoint(editActiveSelection, point);
+    editOverlayCanvas.style.cursor = handle ? 'nwse-resize' : selectionContainsPoint(editActiveSelection, point) ? 'move' : 'crosshair';
+  }
+});
+function cancelEditSelectionInteraction() {
+  const snapshot = editUndoStack.pop();
+  if (snapshot) restoreEditMask(snapshot);
+  editSelectionInteraction = null;
+}
+function finishEditPointerInteraction(event, cancelled=false) {
+  if (editSelectionInteraction && editSelectionInteraction.pointerId === event.pointerId) {
+    const interaction = editSelectionInteraction;
+    editSelectionInteraction = null;
+    if (cancelled || (interaction.action === 'create' && !editSelectionIsMeaningful(editActiveSelection))) {
+      cancelEditSelectionInteraction();
+      if (!cancelled) setEditStatus('选区太小，请拖动后松开。');
+    } else {
+      renderEditActiveSelection();
+      refreshEditToolControls();
+      setEditStatus(`${editActiveSelection.shape === 'ellipse' ? '圆形' : '方框'}选区已创建：可拖动红色区域移动，或拖动四角小方块调整大小。`);
+    }
+  }
+  if (editPainting) {
+    editPainting = false;
+    editLastPoint = null;
+  }
+}
+editOverlayCanvas.addEventListener('pointerup', event => finishEditPointerInteraction(event));
+editOverlayCanvas.addEventListener('pointercancel', event => finishEditPointerInteraction(event, true));
+editOverlayCanvas.addEventListener('lostpointercapture', event => finishEditPointerInteraction(event, true));
+document.getElementById('brush-size').addEventListener('input', () => { setEditBrushLabel(); refreshEditToolControls(); });
+document.getElementById('brush-tool-button').addEventListener('click', () => setEditTool('brush'));
+document.getElementById('circle-tool-button').addEventListener('click', () => setEditTool('circle'));
+document.getElementById('square-tool-button').addEventListener('click', () => setEditTool('square'));
+function updateTextTranslationFields() {
+  const enabled = document.getElementById('edit-text-translation').checked;
+  document.getElementById('edit-translation-fields').hidden = !enabled;
+}
+function fitOptimizedEditPrompt(label, content, constraints) {
+  const maxLength = Number(document.getElementById('edit-prompt').maxLength) || 2000;
+  const suffix = `\n【优化约束】${constraints}`;
+  const fullValue = `${label}${content}${suffix}`;
+  if (fullValue.length <= maxLength) return {value: fullValue, truncated: false};
+  const available = Math.max(0, maxLength - label.length - suffix.length);
+  const ellipsis = available > 0 ? '…' : '';
+  return {value: `${label}${content.slice(0, Math.max(0, available - ellipsis.length)).trimEnd()}${ellipsis}${suffix}`, truncated: true};
+}
+function optimizeEditPromptLocally() {
+  const promptField = document.getElementById('edit-prompt');
+  const textTranslation = document.getElementById('edit-text-translation').checked;
+  const existingPrompt = promptField.value.split('\n【优化约束】')[0].trim();
+  const constraints = '仅修改选区内的文字字形；保持字体风格、字号、字重、颜色、位置、对齐、行距和排版不变。背景颜色、渐变、纹理、阴影、边框、色块及所有非文字像素必须保持不变；不要新增文字、底纹、边框或水印。';
+  let optimized;
+  if (textTranslation) {
+    const sourceText = document.getElementById('edit-source-text').value.trim();
+    const targetLanguage = document.getElementById('edit-target-language').value.trim();
+    const replacementText = document.getElementById('edit-replacement-text').value.trim();
+    if (!targetLanguage) {
+      setEditStatus('文字翻译模式请先填写目标语言，再优化指令。');
+      return;
+    }
+    const sourceDescription = sourceText ? `将“${sourceText}”` : '将红色选区内可读的文字';
+    const textGoal = replacementText ? `${sourceDescription}准确替换为${targetLanguage}：“${replacementText}”。` : `${sourceDescription}翻译为${targetLanguage}。`;
+    const supplement = existingPrompt ? `\n【补充要求】${existingPrompt}` : '';
+    optimized = fitOptimizedEditPrompt('【文字翻译目标】', `${textGoal}${supplement}`, constraints);
+  } else {
+    if (!existingPrompt) {
+      setEditStatus('请先输入希望修改的内容，再点击“优化指令”。');
+      return;
+    }
+    optimized = fitOptimizedEditPrompt('【编辑目标】', existingPrompt, '只修改红色选区及完成上述目标所必需的内容；严格保持选区外及未提及部分的产品主体、文字、背景、颜色、材质、尺寸、比例、构图和光影不变。不要新增水印、文字、边框或色块。');
+  }
+  promptField.value = optimized.value;
+  promptField.focus();
+  setEditStatus(`已在本地优化指令：已补充修改范围和保留约束，不会调用模型。${optimized.truncated ? '因长度限制，已截短末尾的补充说明。' : ''}`);
+}
+async function optimizeEditPrompt() {
+  const promptField = document.getElementById('edit-prompt');
+  const textTranslation = document.getElementById('edit-text-translation').checked;
+  const prompt = promptField.value.trim();
+  const sourceText = document.getElementById('edit-source-text').value.trim();
+  const targetLanguage = document.getElementById('edit-target-language').value.trim();
+  const replacementText = document.getElementById('edit-replacement-text').value.trim();
+  if (!textTranslation && !prompt) return setEditStatus('请先输入希望修改的内容，再使用 AI 优化。');
+  if (textTranslation && !targetLanguage) return setEditStatus('文字翻译模式请先填写目标语言，再使用 AI 优化。');
+  if (!window.confirm('即将调用 Agnes 文字模型 1 次优化指令。仅会发送您输入的指令和文字替换字段，不会上传原图或遮罩，是否继续？')) return;
+  const button = document.getElementById('optimize-edit-prompt');
+  const originalHtml = button.innerHTML;
+  button.disabled = true;
+  button.textContent = '正在 AI 优化…';
+  setEditStatus('Agnes 正在优化指令，请稍候…');
+  try {
+    const response = await fetch(materialApiUrl('api/image-edit/optimize-prompt'), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        confirmed: true,
+        prompt,
+        edit_mode: textTranslation ? 'text_translation' : 'standard',
+        source_text: sourceText,
+        target_language: targetLanguage,
+        replacement_text: replacementText,
+      }),
+    });
+    const data = await parseJsonResponse(response);
+    if (!response.ok || !data.ok || !data.prompt) throw new Error(data.error || 'AI 优化指令失败');
+    promptField.value = data.prompt;
+    promptField.focus();
+    setEditStatus(`已由 ${data.model || 'Agnes 文字模型'} 优化指令；您仍可继续手动修改后再提交图片编辑。`);
+  } catch (error) {
+    setEditStatus(`${error.message || 'AI 优化指令失败'}；您可改用“本地优化”后继续。`);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = originalHtml;
+  }
+}
+document.getElementById('edit-text-translation').addEventListener('change', () => {
+  updateTextTranslationFields();
+  if (document.getElementById('edit-text-translation').checked) setEditStatus('已开启文字翻译模式：请填写目标语言；填写准确替换文本会更稳定，并用方框尽量紧贴文字。');
+});
+document.getElementById('optimize-edit-prompt').addEventListener('click', optimizeEditPrompt);
+document.getElementById('local-optimize-edit-prompt').addEventListener('click', optimizeEditPromptLocally);
+document.querySelectorAll('[data-edit-template]').forEach(button => button.addEventListener('click', () => {
+  document.getElementById('edit-prompt').value = button.dataset.editTemplate;
+  if (button.dataset.editTextOnly === 'true') {
+    document.getElementById('edit-text-translation').checked = true;
+    updateTextTranslationFields();
+    document.getElementById('edit-replacement-text').focus();
+    setEditStatus('已开启法语文字翻译模式：可直接提交让模型翻译；填写准确法语文本会更稳定，方框请尽量紧贴文字。');
+    return;
+  }
+  setEditStatus('已填入快捷模板，请按需要补充具体对象或颜色。');
+  document.getElementById('edit-prompt').focus();
+}));
+document.getElementById('eraser-button').addEventListener('click', () => { if (editTool !== 'brush') setEditTool('brush'); editErasing = !editErasing; refreshEditToolControls(); });
+document.getElementById('delete-selection-button').addEventListener('click', () => { if (!editActiveSelection) return; snapshotEditMask(); editActiveSelection = null; clearEditSelectionPreview(); refreshEditToolControls(); setEditStatus('已删除当前可编辑选区；已画入的画笔内容保持不变。'); });
+document.getElementById('clear-mask-button').addEventListener('click', () => { snapshotEditMask(); editOverlayContext.clearRect(0, 0, editOverlayCanvas.width, editOverlayCanvas.height); editMaskContext.clearRect(0, 0, editMaskCanvas.width, editMaskCanvas.height); editActiveSelection = null; editSelectionInteraction = null; clearEditSelectionPreview(); refreshEditToolControls(); });
+document.getElementById('undo-button').addEventListener('click', () => { const snapshot = editUndoStack.pop(); if (snapshot) restoreEditMask(snapshot); });
+window.addEventListener('beforeunload', () => { editPreviewUrls.forEach(url => URL.revokeObjectURL(url)); });
+setEditBrushLabel();
+refreshEditToolControls();
+updateTextTranslationFields();
+
+function materialApiUrl(path) {
+  const apiPath = String(path || '').replace(/^\/+/, '');
+  const pagePath = window.location.pathname || '/';
+  const pageBase = pagePath.endsWith('/') ? pagePath : `${pagePath}/`;
+  return new URL(`${pageBase}${apiPath}`, window.location.origin).toString();
+}
+function imageEditPreviewUrl(editId, version, cacheBust=Date.now()) {
+  return `${materialApiUrl(`api/image-edit/preview/${encodeURIComponent(editId)}`)}?version=${encodeURIComponent(version)}&t=${cacheBust}`;
+}
+function maskBlob() {
+  rasterizeEditActiveSelection();
+  return new Promise(resolve => editMaskCanvas.toBlob(resolve, 'image/png'));
+}
+async function pollImageEdit(editId) {
+  for (;;) {
+    const response = await fetch(materialApiUrl(`api/image-edit/status/${encodeURIComponent(editId)}`));
+    const data = await parseJsonResponse(response);
+    if (!response.ok) throw new Error(data.error || '读取编辑状态失败');
+    if (data.status === 'succeeded') return data;
+    if (data.status === 'failed') throw new Error(data.error || '局部编辑失败');
+    setEditStatus(data.message || '正在生成局部编辑结果…');
+    await sleep(2500);
+  }
+}
+function showImageEditResult(editId, metadata={}, localOriginalUrl='') {
+  const now = Date.now();
+  const remoteOriginalUrl = imageEditPreviewUrl(editId, 'original', now);
+  const before = document.getElementById('edit-before');
+  before.onerror = localOriginalUrl ? () => { before.onerror = null; before.src = remoteOriginalUrl; } : null;
+  before.src = localOriginalUrl || remoteOriginalUrl;
+  document.getElementById('edit-after').src = imageEditPreviewUrl(editId, 'final', now);
+  document.getElementById('edit-result-time').textContent = metadata.finished_at || '已完成';
+  document.getElementById('edit-download').href = materialApiUrl(`api/image-edit/download/${encodeURIComponent(editId)}`);
+  document.getElementById('edit-result-card').style.display = 'block';
+  document.getElementById('compare-range').value = 50;
+  updateCompare();
+}
+function updateCompare() { document.getElementById('edit-after-wrap').style.clipPath = `inset(0 0 0 ${document.getElementById('compare-range').value}%)`; }
+document.getElementById('compare-range').addEventListener('input', updateCompare);
+document.getElementById('edit-submit').addEventListener('click', async event => {
+  const textTranslation = document.getElementById('edit-text-translation').checked;
+  const sourceText = document.getElementById('edit-source-text').value.trim();
+  const targetLanguage = document.getElementById('edit-target-language').value.trim();
+  const replacementText = document.getElementById('edit-replacement-text').value.trim();
+  const typedPrompt = document.getElementById('edit-prompt').value.trim();
+  const translationPrompt = replacementText
+    ? `将${sourceText || '红色选区内的文字'}准确替换为${targetLanguage}：${replacementText}`
+    : `将${sourceText || '红色选区内的文字'}翻译为${targetLanguage}`;
+  const prompt = typedPrompt || (textTranslation ? translationPrompt : '');
+  if (!editSourceFile) return setEditStatus('请先上传一张原图。');
+  if (!editMaskHasSelection()) return setEditStatus('请先用画笔、圆形选区或方框选区标记需要修改的区域。');
+  if (textTranslation && !targetLanguage) return setEditStatus('文字翻译模式需要填写目标语言。准确替换文本为可选项，填写后效果更稳定。');
+  if (!prompt) return setEditStatus('请填写局部修改指令。');
+  if (!window.confirm(`即将调用 Agnes 图片编辑模型 1 次。原图、遮罩和提示词将发送到 Agnes，是否继续？`)) return;
+  const button = event.currentTarget;
+  const submittedOriginalUrl = editSourcePreviewUrl;
+  button.disabled = true;
+  button.innerHTML = '<span class="spinner" style="width:14px;height:14px;margin-right:4px;"></span>正在创建任务…';
+  try {
+    const data = new FormData();
+    data.append('original', editSourceFile);
+    data.append('mask', new File([await maskBlob()], 'mask.png', {type:'image/png'}));
+    data.append('prompt', prompt);
+    data.append('edit_mode', textTranslation ? 'text_translation' : 'standard');
+    data.append('source_text', sourceText);
+    data.append('target_language', targetLanguage);
+    data.append('replacement_text', replacementText);
+    data.append('confirmed', 'true');
+    const response = await fetch(materialApiUrl('api/image-edit/start'), {method:'POST', body:data});
+    const created = await parseJsonResponse(response);
+    if (!response.ok || !created.ok) throw new Error(created.error || '创建局部编辑任务失败');
+    setEditStatus('Agnes 正在编辑选区，请稍候…');
+    const result = await pollImageEdit(created.edit_id);
+    showImageEditResult(created.edit_id, result, submittedOriginalUrl);
+    setEditStatus('局部编辑完成：原图和编辑结果都可直接在页面中查看，遮罩外像素已保持原样。');
+    await loadEditHistory();
+  } catch (error) {
+    setEditStatus(`局部编辑失败：${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = '<i class="ph ph-magic-wand"></i> 确认并开始局部编辑';
+  }
+});
+document.getElementById('edit-continue').addEventListener('click', async () => { const source = document.getElementById('edit-after').src; if (!source) return; const response = await fetch(source); const blob = await response.blob(); loadEditImage(new File([blob], `edit_${Date.now()}.png`, {type:'image/png'})); document.getElementById('edit-prompt').value = ''; switchMaterialMode('edit'); });
+async function loadEditHistory() { const list = document.getElementById('edit-history'); try { const response = await fetch(materialApiUrl('api/image-edit/history')); const data = await parseJsonResponse(response); const edits = data.edits || []; document.getElementById('edit-history-count').textContent = edits.length; list.innerHTML = ''; if (!edits.length) { list.innerHTML = '<div class="empty">暂无局部编辑记录</div>'; return; } edits.forEach(edit => { const row = document.createElement('div'); row.className = 'edit-history-item'; const image = document.createElement('img'); image.alt = '编辑结果'; image.src = edit.has_result ? imageEditPreviewUrl(edit.edit_id, 'final') : ''; const info = document.createElement('div'); const prompt = document.createElement('div'); prompt.className = 'prompt'; prompt.textContent = edit.prompt || '未填写提示词'; const meta = document.createElement('div'); meta.className = 'meta'; meta.textContent = `${edit.created_at || ''} · ${edit.status || ''}`; info.append(prompt, meta); const actions = document.createElement('div'); if (edit.has_result) { const open = document.createElement('button'); open.className = 'btn btn-secondary btn-small'; open.type = 'button'; open.textContent = '查看'; open.onclick = () => showImageEditResult(edit.edit_id, edit); actions.append(open); } row.append(image, info, actions); list.append(row); }); } catch (_) { list.innerHTML = '<div class="empty">暂时无法读取局部编辑历史</div>'; } }
+
+loadStats(); loadHistory(); loadEditHistory();
+</script>
+</body>
+</html>

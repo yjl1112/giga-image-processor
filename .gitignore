@@ -1,0 +1,26 @@
+# 运行期数据（素材、产物、报告、历史），绝不入库
+data/
+
+# 密钥与本地配置
+.env
+config/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 归档产物 / 日志
+*.zip
+*.log
+*.part
+*.crdownload
+
+# 备份与编辑器
+*.pre_*
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
